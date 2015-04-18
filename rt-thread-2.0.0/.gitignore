@@ -19,3 +19,6 @@ build
 *.a
 *.i
 *.d
+
+*.uvgui.*
+*.uvopt

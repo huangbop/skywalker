@@ -1,0 +1,3263 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;/******************************************************
+                       ***********************/
+    2 00000000         ;/* S3C2440.S: Startup file for Samsung S3C440          
+                                             */
+    3 00000000         ;/******************************************************
+                       ***********************/
+    4 00000000         ;/* <<< Use Configuration Wizard in Context Menu >>>    
+                                             */
+    5 00000000         ;/******************************************************
+                       ***********************/
+    6 00000000         ;/* This file is part of the uVision/ARM development too
+                       ls.                   */
+    7 00000000         ;/* Copyright (c) 2005-2008 Keil Software. All rights re
+                       served.               */
+    8 00000000         ;/* This software may only be used under the terms of a 
+                       valid, current,       */
+    9 00000000         ;/* end user licence from KEIL for a compatible version 
+                       of KEIL software      */
+   10 00000000         ;/* development tools. Nothing else gives you the right 
+                       to use this software. */
+   11 00000000         ;/******************************************************
+                       ***********************/
+   12 00000000         
+   13 00000000         
+   14 00000000         ;/*
+   15 00000000         ; *  The S3C2440.S code is executed after CPU Reset. Thi
+                       s file may be
+   16 00000000         ; *  translated with the following SET symbols. In uVisi
+                       on these SET
+   17 00000000         ; *  symbols are entered under Options - ASM - Define.
+   18 00000000         ; *
+   19 00000000         ; *  NO_CLOCK_SETUP: when set the startup code will not 
+                       initialize Clock
+   20 00000000         ; *  (used mostly when clock is already initialized from
+                        script .ini
+   21 00000000         ; *  file).
+   22 00000000         ; *
+   23 00000000         ; *  NO_MC_SETUP: when set the startup code will not ini
+                       tialize Memory
+   24 00000000         ; *  Controller (used mostly when clock is already initi
+                       alized from script
+   25 00000000         ; *  .ini file).
+   26 00000000         ; *
+   27 00000000         ; *  NO_GP_SETUP: when set the startup code will not ini
+                       tialize General Ports
+   28 00000000         ; *  (used mostly when clock is already initialized from
+                        script .ini
+   29 00000000         ; *  file).
+   30 00000000         ; *
+   31 00000000         ; *  RAM_INTVEC: when set the startup code copies except
+                       ion vectors
+   32 00000000         ; *  from execution address to on-chip RAM.
+   33 00000000         ; */
+   34 00000000         
+   35 00000000         
+   36 00000000         ; Standard definitions of Mode bits and Interrupt (I & F
+                       ) flags in PSRs
+   37 00000000         
+   38 00000000 00000010 
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                       Mode_USR
+                               EQU              0x10
+   39 00000000 00000011 
+                       Mode_FIQ
+                               EQU              0x11
+   40 00000000 00000012 
+                       Mode_IRQ
+                               EQU              0x12
+   41 00000000 00000013 
+                       Mode_SVC
+                               EQU              0x13
+   42 00000000 00000017 
+                       Mode_ABT
+                               EQU              0x17
+   43 00000000 0000001B 
+                       Mode_UND
+                               EQU              0x1B
+   44 00000000 0000001F 
+                       Mode_SYS
+                               EQU              0x1F
+   45 00000000         
+   46 00000000 00000080 
+                       I_Bit   EQU              0x80        ; when I bit is set
+                                                            , IRQ is disabled
+   47 00000000 00000040 
+                       F_Bit   EQU              0x40        ; when F bit is set
+                                                            , FIQ is disabled
+   48 00000000         
+   49 00000000         
+   50 00000000         ;----------------------- Stack and Heap Definitions ----
+                       ------------------------
+   51 00000000         
+   52 00000000         ;// <h> Stack Configuration (Stack Sizes in Bytes)
+   53 00000000         ;//   <o0> Undefined Mode      <0x0-0xFFFFFFFF:8>
+   54 00000000         ;//   <o1> Supervisor Mode     <0x0-0xFFFFFFFF:8>
+   55 00000000         ;//   <o2> Abort Mode          <0x0-0xFFFFFFFF:8>
+   56 00000000         ;//   <o3> Fast Interrupt Mode <0x0-0xFFFFFFFF:8>
+   57 00000000         ;//   <o4> Interrupt Mode      <0x0-0xFFFFFFFF:8>
+   58 00000000         ;//   <o5> User/System Mode    <0x0-0xFFFFFFFF:8>
+   59 00000000         ;// </h>
+   60 00000000         
+   61 00000000 00000000 
+                       UND_Stack_Size
+                               EQU              0x00000000
+   62 00000000 00000100 
+                       SVC_Stack_Size
+                               EQU              0x00000100
+   63 00000000 00000000 
+                       ABT_Stack_Size
+                               EQU              0x00000000
+   64 00000000 00000000 
+                       FIQ_Stack_Size
+                               EQU              0x00000000
+   65 00000000 00000100 
+                       IRQ_Stack_Size
+                               EQU              0x00000100
+   66 00000000 00000100 
+                       USR_Stack_Size
+                               EQU              0x00000100
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   67 00000000         
+   69 00000000 00000200 
+                       ISR_Stack_Size
+                               EQU              (UND_Stack_Size + SVC_Stack_Siz
+e + ABT_Stack_Size +                           FIQ_Stack_Size + IRQ_Stack_Size
+)
+   70 00000000         
+   71 00000000                 AREA             STACK, NOINIT, READWRITE, ALIGN
+=3
+   72 00000000         
+   73 00000000         Stack_Mem
+                               SPACE            USR_Stack_Size
+   74 00000100         __initial_sp
+                               SPACE            ISR_Stack_Size
+   75 00000300         Stack_Top
+   76 00000300         
+   77 00000300         
+   78 00000300         ;// <h> Heap Configuration
+   79 00000300         ;//   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF>
+   80 00000300         ;// </h>
+   81 00000300         
+   82 00000300 00000000 
+                       Heap_Size
+                               EQU              0x00000000
+   83 00000300         
+   84 00000300                 AREA             HEAP, NOINIT, READWRITE, ALIGN=
+3
+   85 00000000         __heap_base
+   86 00000000         Heap_Mem
+                               SPACE            Heap_Size
+   87 00000000         __heap_limit
+   88 00000000         
+   89 00000000         
+   90 00000000         ;----------------------- Memory Definitions ------------
+                       ------------------------
+   91 00000000         
+   92 00000000         ; Internal Memory Base Addresses
+   93 00000000 40000000 
+                       IRAM_BASE
+                               EQU              0x40000000
+   94 00000000         
+   95 00000000         
+   96 00000000         ;----------------------- Watchdog Timer Definitions ----
+                       ------------------------
+   97 00000000         
+   98 00000000 53000000 
+                       WT_BASE EQU              0x53000000  ; Watchdog Timer Ba
+                                                            se Address
+   99 00000000 00000000 
+                       WTCON_OFS
+                               EQU              0x00        ; Watchdog Timer Co
+                                                            ntrol Register Offs
+                                                            et
+  100 00000000 00000004 
+                       WTDAT_OFS
+                               EQU              0x04        ; Watchdog Timer Da
+                                                            ta Register    Offs
+                                                            et
+  101 00000000 00000008 
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+                       WTCNT_OFS
+                               EQU              0x08        ; Watchdog Timer Co
+                                                            unt Register   Offs
+                                                            et
+  102 00000000         
+  103 00000000         ;// <e> Watchdog Timer Setup
+  104 00000000         ;//   <h> Watchdog Timer Control Register (WTCON)
+  105 00000000         ;//     <o1.8..15>  Prescaler Value <0-255>
+  106 00000000         ;//     <o1.5>      Watchdog Timer Enable
+  107 00000000         ;//     <o1.3..4>   Clock Division Factor
+  108 00000000         ;//       <0=> 16   <1=> 32  <2=> 64  <3=> 128
+  109 00000000         ;//     <o1.2>      Interrupt Generation Enable
+  110 00000000         ;//     <o1.0>      Reset Enable
+  111 00000000         ;//   </h>
+  112 00000000         ;//   <h> Watchdog Timer Data Register (WTDAT)
+  113 00000000         ;//     <o2.0..15>  Count Reload Value <0-65535>
+  114 00000000         ;//   </h>
+  115 00000000         ;// </e> Watchdog Timer Setup
+  116 00000000 00000001 
+                       WT_SETUP
+                               EQU              1
+  117 00000000 00000000 
+                       WTCON_Val
+                               EQU              0x00000000
+  118 00000000 00008000 
+                       WTDAT_Val
+                               EQU              0x00008000
+  119 00000000         
+  120 00000000         
+  121 00000000         ;----------------------- Clock and Power Management Defi
+                       nitions ----------------
+  122 00000000         
+  123 00000000 4C000000 
+                       CLOCK_BASE
+                               EQU              0x4C000000  ; Clock Base Addres
+                                                            s
+  124 00000000 00000000 
+                       LOCKTIME_OFS
+                               EQU              0x00        ; PLL Lock Time Cou
+                                                            nt Register   Offse
+                                                            t
+  125 00000000 00000004 
+                       MPLLCON_OFS
+                               EQU              0x04        ; MPLL Configuratio
+                                                            n Register    Offse
+                                                            t
+  126 00000000 00000008 
+                       UPLLCON_OFS
+                               EQU              0x08        ; UPLL Configuratio
+                                                            n Register    Offse
+                                                            t
+  127 00000000 0000000C 
+                       CLKCON_OFS
+                               EQU              0x0C        ; Clock Generator C
+                                                            ontrol Reg    Offse
+                                                            t
+  128 00000000 00000010 
+                       CLKSLOW_OFS
+                               EQU              0x10        ; Clock Slow Contro
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+                                                            l Register    Offse
+                                                            t
+  129 00000000 00000014 
+                       CLKDIVN_OFS
+                               EQU              0x14        ; Clock Divider Con
+                                                            trol Register Offse
+                                                            t
+  130 00000000 00000018 
+                       CAMDIVN_OFS
+                               EQU              0x18        ; Camera Clock Divi
+                                                            der Register  Offse
+                                                            t
+  131 00000000         
+  132 00000000         ;// <e> Clock Setup
+  133 00000000         ;//   <h> PLL Lock Time Count Register (LOCKTIME)
+  134 00000000         ;//     <o1.16..31> U_LTIME: UPLL Lock Time Count Value 
+                       for UCLK <0x0-0xFFFF>
+  135 00000000         ;//     <o1.0..15>  M_LTIME: MPLL Lock Time Count Value 
+                       for FCLK, HCLK and PCLK <0x0-0xFFFF>
+  136 00000000         ;//   </h>
+  137 00000000         ;//   <h> MPLL Configuration Register (MPLLCON)
+  138 00000000         ;//     <i> MPLL = (2 * m * Fin) / (p * 2^s)
+  139 00000000         ;//     <o2.12..19> m: Main Divider m Value <9-256><#-8>
+                       
+  140 00000000         ;//       <i> m = MDIV + 8
+  141 00000000         ;//     <o2.4..9>   p: Pre-divider p Value <3-64><#-2>
+  142 00000000         ;//       <i> p = PDIV + 2
+  143 00000000         ;//     <o2.0..1>   s: Post Divider s Value <0-3>
+  144 00000000         ;//       <i> s = SDIV
+  145 00000000         ;//   </h>
+  146 00000000         ;//   <h> UPLL Configuration Register (UPLLCON)
+  147 00000000         ;//     <i> UPLL = ( m * Fin) / (p * 2^s)
+  148 00000000         ;//     <o3.12..19> m: Main Divider m Value <8-263><#-8>
+                       
+  149 00000000         ;//       <i> m = MDIV + 8
+  150 00000000         ;//     <o3.4..9>   p: Pre-divider p Value <2-65><#-2>
+  151 00000000         ;//       <i> p = PDIV + 2
+  152 00000000         ;//     <o3.0..1>   s: Post Divider s Value <0-3>
+  153 00000000         ;//       <i> s = SDIV
+  154 00000000         ;//   </h>
+  155 00000000         ;//   <h> Clock Generation Control Register (CLKCON)
+  156 00000000         ;//     <o4.20>     AC97 Enable
+  157 00000000         ;//     <o4.19>     Camera Enable
+  158 00000000         ;//     <o4.18>     SPI Enable
+  159 00000000         ;//     <o4.17>     IIS Enable
+  160 00000000         ;//     <o4.16>     IIC Enable
+  161 00000000         ;//     <o4.15>     ADC + Touch Screen Enable
+  162 00000000         ;//     <o4.14>     RTC Enable
+  163 00000000         ;//     <o4.13>     GPIO Enable
+  164 00000000         ;//     <o4.12>     UART2 Enable
+  165 00000000         ;//     <o4.11>     UART1 Enable
+  166 00000000         ;//     <o4.10>     UART0 Enable
+  167 00000000         ;//     <o4.9>      SDI Enable
+  168 00000000         ;//     <o4.8>      PWMTIMER Enable
+  169 00000000         ;//     <o4.7>      USB Device Enable
+  170 00000000         ;//     <o4.6>      USB Host Enable
+  171 00000000         ;//     <o4.5>      LCDC Enable
+  172 00000000         ;//     <o4.4>      NAND FLASH Controller Enable
+  173 00000000         ;//     <o4.3>      SLEEP Enable
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  174 00000000         ;//     <o4.2>      IDLE BIT Enable
+  175 00000000         ;//   </h>
+  176 00000000         ;//   <h> Clock Slow Control Register (CLKSLOW)
+  177 00000000         ;//     <o5.7>      UCLK_ON: UCLK ON
+  178 00000000         ;//     <o5.5>      MPLL_OFF: Turn off PLL
+  179 00000000         ;//     <o5.4>      SLOW_BIT: Slow Mode Enable
+  180 00000000         ;//     <o5.0..2>   SLOW_VAL: Slow Clock Divider <0-7>
+  181 00000000         ;//   </h>
+  182 00000000         ;//   <h> Clock Divider Control Register (CLKDIVN)
+  183 00000000         ;//     <o6.3>      DIVN_UPLL: UCLK Select
+  184 00000000         ;//       <0=> UCLK = UPLL clock
+  185 00000000         ;//       <1=> UCLK = UPLL clock / 2
+  186 00000000         ;//     <o6.1..2>   HDIVN: HCLK Select
+  187 00000000         ;//       <0=> HCLK = FCLK
+  188 00000000         ;//       <1=> HCLK = FCLK / 2
+  189 00000000         ;//       <2=> HCLK = FCLK / 4 if HCLK4_HALF = 0 in CAMD
+                       IVN, else HCLK = FCLK / 8
+  190 00000000         ;//       <3=> HCLK = FCLK / 3 if HCLK3_HALF = 0 in CAMD
+                       IVN, else HCLK = FCLK / 6
+  191 00000000         ;//     <o6.0>      PDIVN: PCLK Select
+  192 00000000         ;//       <0=> PCLK = HCLK
+  193 00000000         ;//       <1=> PCLK = HCLK / 2
+  194 00000000         ;//   </h>
+  195 00000000         ;//   <h> Camera Clock Divider Control Register (CAMDIVN
+                       )
+  196 00000000         ;//     <o7.12>     DVS_EN: ARM Core Clock Select
+  197 00000000         ;//       <0=> ARM core runs at FCLK
+  198 00000000         ;//       <1=> ARM core runs at HCLK
+  199 00000000         ;//     <o7.9>      HCLK4_HALF: HDIVN Division Rate Chan
+                       ge Bit
+  200 00000000         ;//       <0=> If HDIVN = 2 in CLKDIVN then HCLK = FCLK 
+                       / 4
+  201 00000000         ;//       <1=> If HDIVN = 2 in CLKDIVN then HCLK = FCLK 
+                       / 8
+  202 00000000         ;//     <o7.8>      HCLK3_HALF: HDIVN Division Rate Chan
+                       ge Bit
+  203 00000000         ;//       <0=> If HDIVN = 3 in CLKDIVN then HCLK = FCLK 
+                       / 3
+  204 00000000         ;//       <1=> If HDIVN = 3 in CLKDIVN then HCLK = FCLK 
+                       / 6
+  205 00000000         ;//     <o7.4>      CAMCLK Select
+  206 00000000         ;//       <0=> CAMCLK = UPLL
+  207 00000000         ;//       <1=> CAMCLK = UPLL / CAMCLK_DIV
+  208 00000000         ;//     <o7.0..3>   CAMCLK_DIV: CAMCLK Divider <0-15>
+  209 00000000         ;//       <i> Camera Clock = UPLL / (2 * (CAMCLK_DIV + 1
+                       ))
+  210 00000000         ;//       <i> Divider is used only if CAMCLK_SEL = 1
+  211 00000000         ;//   </h>
+  212 00000000         ;// </e> Clock Setup
+  213 00000000 00000000 
+                       CLOCK_SETUP
+                               EQU              0
+  214 00000000 0FFF0FFF 
+                       LOCKTIME_Val
+                               EQU              0x0FFF0FFF
+  215 00000000 00043011 
+                       MPLLCON_Val
+                               EQU              0x00043011
+  216 00000000 00038021 
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+                       UPLLCON_Val
+                               EQU              0x00038021
+  217 00000000 001FFFF0 
+                       CLKCON_Val
+                               EQU              0x001FFFF0
+  218 00000000 00000004 
+                       CLKSLOW_Val
+                               EQU              0x00000004
+  219 00000000 0000000F 
+                       CLKDIVN_Val
+                               EQU              0x0000000F
+  220 00000000 00000000 
+                       CAMDIVN_Val
+                               EQU              0x00000000
+  221 00000000         
+  222 00000000         
+  223 00000000         ;----------------------- Memory Controller Definitions -
+                       ------------------------
+  224 00000000         
+  225 00000000 48000000 
+                       MC_BASE EQU              0x48000000  ; Memory Controller
+                                                             Base Address
+  226 00000000 00000000 
+                       BWSCON_OFS
+                               EQU              0x00        ; Bus Width and Wai
+                                                            t Status Ctrl Offse
+                                                            t
+  227 00000000 00000004 
+                       BANKCON0_OFS
+                               EQU              0x04        ; Bank 0 Control Re
+                                                            gister        Offse
+                                                            t
+  228 00000000 00000008 
+                       BANKCON1_OFS
+                               EQU              0x08        ; Bank 1 Control Re
+                                                            gister        Offse
+                                                            t
+  229 00000000 0000000C 
+                       BANKCON2_OFS
+                               EQU              0x0C        ; Bank 2 Control Re
+                                                            gister        Offse
+                                                            t
+  230 00000000 00000010 
+                       BANKCON3_OFS
+                               EQU              0x10        ; Bank 3 Control Re
+                                                            gister        Offse
+                                                            t
+  231 00000000 00000014 
+                       BANKCON4_OFS
+                               EQU              0x14        ; Bank 4 Control Re
+                                                            gister        Offse
+                                                            t
+  232 00000000 00000018 
+                       BANKCON5_OFS
+                               EQU              0x18        ; Bank 5 Control Re
+                                                            gister        Offse
+                                                            t
+  233 00000000 0000001C 
+                       BANKCON6_OFS
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+                               EQU              0x1C        ; Bank 6 Control Re
+                                                            gister        Offse
+                                                            t
+  234 00000000 00000020 
+                       BANKCON7_OFS
+                               EQU              0x20        ; Bank 7 Control Re
+                                                            gister        Offse
+                                                            t
+  235 00000000 00000024 
+                       REFRESH_OFS
+                               EQU              0x24        ; SDRAM Refresh Con
+                                                            trol Register Offse
+                                                            t
+  236 00000000 00000028 
+                       BANKSIZE_OFS
+                               EQU              0x28        ; Flexible Bank Siz
+                                                            e Register    Offse
+                                                            t
+  237 00000000 0000002C 
+                       MRSRB6_OFS
+                               EQU              0x2C        ; Bank 6 Mode Regis
+                                                            ter           Offse
+                                                            t
+  238 00000000 00000030 
+                       MRSRB7_OFS
+                               EQU              0x30        ; Bank 7 Mode Regis
+                                                            ter           Offse
+                                                            t
+  239 00000000         
+  240 00000000         ;// <e> Memory Controller Setup
+  241 00000000         ;//   <h> Bus Width and Wait Control Register (BWSCON)
+  242 00000000         ;//     <o1.31>     ST7: Use UB/LB for Bank 7
+  243 00000000         ;//     <o1.30>     WS7: Enable Wait Status for Bank 7
+  244 00000000         ;//     <o1.28..29> DW7: Data Bus Width for Bank 7
+  245 00000000         ;//       <0=> 8-bit  <1=> 16-bit  <2=> 32-bit  <3=> Res
+                       erved
+  246 00000000         ;//     <o1.27>     ST6: Use UB/LB for Bank 6
+  247 00000000         ;//     <o1.26>     WS6: Enable Wait Status for Bank 6
+  248 00000000         ;//     <o1.24..25> DW6: Data Bus Width for Bank 6
+  249 00000000         ;//       <0=> 8-bit  <1=> 16-bit  <2=> 32-bit  <3=> Res
+                       erved
+  250 00000000         ;//     <o1.23>     ST5: Use UB/LB for Bank 5
+  251 00000000         ;//     <o1.22>     WS5: Enable Wait Status for Bank 5
+  252 00000000         ;//     <o1.20..21> DW5: Data Bus Width for Bank 5
+  253 00000000         ;//       <0=> 8-bit  <1=> 16-bit  <2=> 32-bit  <3=> Res
+                       erved
+  254 00000000         ;//     <o1.19>     ST4: Use UB/LB for Bank 4
+  255 00000000         ;//     <o1.18>     WS4: Enable Wait Status for Bank 4
+  256 00000000         ;//     <o1.16..17> DW4: Data Bus Width for Bank 4
+  257 00000000         ;//       <0=> 8-bit  <1=> 16-bit  <2=> 32-bit  <3=> Res
+                       erved
+  258 00000000         ;//     <o1.15>     ST3: Use UB/LB for Bank 3
+  259 00000000         ;//     <o1.14>     WS3: Enable Wait Status for Bank 3
+  260 00000000         ;//     <o1.12..13> DW3: Data Bus Width for Bank 3
+  261 00000000         ;//       <0=> 8-bit  <1=> 16-bit  <2=> 32-bit  <3=> Res
+                       erved
+  262 00000000         ;//     <o1.11>     ST2: Use UB/LB for Bank 2
+  263 00000000         ;//     <o1.10>     WS2: Enable Wait Status for Bank 2
+  264 00000000         ;//     <o1.8..9>   DW2: Data Bus Width for Bank 2
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+  265 00000000         ;//       <0=> 8-bit  <1=> 16-bit  <2=> 32-bit  <3=> Res
+                       erved
+  266 00000000         ;//     <o1.7>      ST1: Use UB/LB for Bank 1
+  267 00000000         ;//     <o1.6>      WS1: Enable Wait Status for Bank 1
+  268 00000000         ;//     <o1.4..5>   DW1: Data Bus Width for Bank 1
+  269 00000000         ;//       <0=> 8-bit  <1=> 16-bit  <2=> 32-bit  <3=> Res
+                       erved
+  270 00000000         ;//     <o1.1..2>   DW0: Indicate Data Bus Width for Ban
+                       k 0
+  271 00000000         ;//       <1=> 16-bit  <2=> 32-bit
+  272 00000000         ;//   </h>
+  273 00000000         ;//   <h> Bank 0 Control Register (BANKCON0)
+  274 00000000         ;//     <o2.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  275 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  276 00000000         ;//     <o2.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  277 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  278 00000000         ;//     <o2.8..10>  Tacc: Access Cycle
+  279 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+                         <3=>  4 clocks
+  280 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  281 00000000         ;//     <o2.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  282 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  283 00000000         ;//     <o2.4..5>   Tcah: Address Hold Time after nGCS
+  284 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  285 00000000         ;//     <o2.2..3>   Tacp: Page Mode Access Cycle at Page
+                        Mode
+  286 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  287 00000000         ;//     <o2.0..1>   PMC: Page Mode Configuration
+  288 00000000         ;//       <0=> normal (1 data)  <1=> 4 data  <2=> 8 data
+                         <3=> 16 data
+  289 00000000         ;//   </h>
+  290 00000000         ;//   <h> Bank 1 Control Register (BANKCON1)
+  291 00000000         ;//     <o3.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  292 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  293 00000000         ;//     <o3.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  294 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  295 00000000         ;//     <o3.8..10>  Tacc: Access Cycle
+  296 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+                         <3=>  4 clocks
+  297 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  298 00000000         ;//     <o3.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  299 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  300 00000000         ;//     <o3.4..5>   Tcah: Address Hold Time after nGCS
+
+
+
+ARM Macro Assembler    Page 10 
+
+
+  301 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  302 00000000         ;//     <o3.2..3>   Tacp: Page Mode Access Cycle at Page
+                        Mode
+  303 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  304 00000000         ;//     <o3.0..1>   PMC: Page Mode Configuration
+  305 00000000         ;//       <0=> normal (1 data)  <1=> 4 data  <2=> 8 data
+                         <3=> 16 data
+  306 00000000         ;//   </h>
+  307 00000000         ;//   <h> Bank 2 Control Register (BANKCON2)
+  308 00000000         ;//     <o4.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  309 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  310 00000000         ;//     <o4.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  311 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  312 00000000         ;//     <o4.8..10>  Tacc: Access Cycle
+  313 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+                         <3=>  4 clocks
+  314 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  315 00000000         ;//     <o4.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  316 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  317 00000000         ;//     <o4.4..5>   Tcah: Address Hold Time after nGCS
+  318 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  319 00000000         ;//     <o4.2..3>   Tacp: Page Mode Access Cycle at Page
+                        Mode
+  320 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  321 00000000         ;//     <o4.0..1>   PMC: Page Mode Configuration
+  322 00000000         ;//       <0=> normal (1 data)  <1=> 4 data  <2=> 8 data
+                         <3=> 16 data
+  323 00000000         ;//   </h>
+  324 00000000         ;//   <h> Bank 3 Control Register (BANKCON3)
+  325 00000000         ;//     <o5.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  326 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  327 00000000         ;//     <o5.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  328 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  329 00000000         ;//     <o5.8..10>  Tacc: Access Cycle
+  330 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+                         <3=>  4 clocks
+  331 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  332 00000000         ;//     <o5.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  333 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  334 00000000         ;//     <o5.4..5>   Tcah: Address Hold Time after nGCS
+  335 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+
+
+
+ARM Macro Assembler    Page 11 
+
+
+                       3=> 4 clocks
+  336 00000000         ;//     <o5.2..3>   Tacp: Page Mode Access Cycle at Page
+                        Mode
+  337 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  338 00000000         ;//     <o5.0..1>   PMC: Page Mode Configuration
+  339 00000000         ;//       <0=> normal (1 data)  <1=> 4 data  <2=> 8 data
+                         <3=> 16 data
+  340 00000000         ;//   </h>
+  341 00000000         ;//   <h> Bank 4 Control Register (BANKCON4)
+  342 00000000         ;//     <o6.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  343 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  344 00000000         ;//     <o6.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  345 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  346 00000000         ;//     <o6.8..10>  Tacc: Access Cycle
+  347 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+                         <3=>  4 clocks
+  348 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  349 00000000         ;//     <o6.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  350 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  351 00000000         ;//     <o6.4..5>   Tcah: Address Hold Time after nGCS
+  352 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  353 00000000         ;//     <o6.2..3>   Tacp: Page Mode Access Cycle at Page
+                        Mode
+  354 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  355 00000000         ;//     <o6.0..1>   PMC: Page Mode Configuration
+  356 00000000         ;//       <0=> normal (1 data)  <1=> 4 data  <2=> 8 data
+                         <3=> 16 data
+  357 00000000         ;//   </h>
+  358 00000000         ;//   <h> Bank 5 Control Register (BANKCON5)
+  359 00000000         ;//     <o7.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  360 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  361 00000000         ;//     <o7.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  362 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  363 00000000         ;//     <o7.8..10>  Tacc: Access Cycle
+  364 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+                         <3=>  4 clocks
+  365 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  366 00000000         ;//     <o7.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  367 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  368 00000000         ;//     <o7.4..5>   Tcah: Address Hold Time after nGCS
+  369 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+
+
+
+ARM Macro Assembler    Page 12 
+
+
+  370 00000000         ;//     <o7.2..3>   Tacp: Page Mode Access Cycle at Page
+                        Mode
+  371 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  372 00000000         ;//     <o7.0..1>   PMC: Page Mode Configuration
+  373 00000000         ;//       <0=> normal (1 data)  <1=> 4 data  <2=> 8 data
+                         <3=> 16 data
+  374 00000000         ;//   </h>
+  375 00000000         ;//   <h> Bank 6 Control Register (BANKCON6)
+  376 00000000         ;//     <o8.15..16> Memory Type Selection
+  377 00000000         ;//       <0=> ROM or SRAM  <3=> SDRAM
+  378 00000000         ;//     <o8.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  379 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  380 00000000         ;//     <o8.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  381 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  382 00000000         ;//     <o8.8..10>  Tacc: Access Cycle
+  383 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+                         <3=>  4 clocks
+  384 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  385 00000000         ;//     <o8.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  386 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  387 00000000         ;//     <o8.4..5>   Tcah: Address Hold Time after nGCS
+  388 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  389 00000000         ;//     <o8.2..3>   Tacp/Trcd: Page Mode Access Cycle at
+                        Page Mode / RAS to CAS Delay
+  390 00000000         ;//       <i>  Parameter depends on Memory Type: if type
+                        SRAM then parameter is Tacp,
+  391 00000000         ;//       <i>  if type is SDRAM then parameter is Trcd
+  392 00000000         ;//       <i>  For SDRAM 6 cycles setting is not allowed
+                       
+  393 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  394 00000000         ;//     <o8.0..1>   PMC/SCAN: Page Mode Configuration / 
+                       Column Address Number <0-3>
+  395 00000000         ;//       <i>  Parameter depends on Memory Type: if type
+                        SRAM then parameter is PMC,
+  396 00000000         ;//       <i>  if type is SDRAM then parameter is SCAN
+  397 00000000         ;//   </h>
+  398 00000000         ;//   <h> Bank 7 Control Register (BANKCON7)
+  399 00000000         ;//     <o9.15..16> Memory Type Selection
+  400 00000000         ;//       <0=> ROM or SRAM  <3=> SDRAM
+  401 00000000         ;//     <o9.13..14> Tacs: Address Set-up Time before nGC
+                       S
+  402 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  403 00000000         ;//     <o9.11..12> Tcos: Chip Selection Set-up Time bef
+                       ore nOE
+  404 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  405 00000000         ;//     <o9.8..10>  Tacc: Access Cycle
+  406 00000000         ;//       <0=>  1 clocks  <1=>  2 clocks  <2=>  3 clocks
+
+
+
+ARM Macro Assembler    Page 13 
+
+
+                         <3=>  4 clocks
+  407 00000000         ;//       <4=>  6 clocks  <5=>  8 clocks  <6=> 10 clocks
+                         <7=> 14 clocks
+  408 00000000         ;//     <o9.6..7>   Tcoh: Chip Selection Hold Time after
+                        nOE
+  409 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  410 00000000         ;//     <o9.4..5>   Tcah: Address Hold Time after nGCS
+  411 00000000         ;//       <0=> 0 clocks  <1=> 1 clocks  <2=> 2 clocks  <
+                       3=> 4 clocks
+  412 00000000         ;//     <o9.2..3>   Tacp/Trcd: Page Mode Access Cycle at
+                        Page Mode / RAS to CAS Delay
+  413 00000000         ;//       <i>  Parameter depends on Memory Type: if type
+                        SRAM then parameter is Tacp,
+  414 00000000         ;//       <i>  if type is SDRAM then parameter is Trcd
+  415 00000000         ;//       <i>  For SDRAM 6 cycles setting is not allowed
+                       
+  416 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> 6 clocks
+  417 00000000         ;//     <o9.0..1>   PMC/SCAN: Page Mode Configuration / 
+                       Column Address Number <0-3>
+  418 00000000         ;//       <i>  Parameter depends on Memory Type: if type
+                        SRAM then parameter is PMC,
+  419 00000000         ;//       <i>  if type is SDRAM then parameter is SCAN
+  420 00000000         ;//   </h>
+  421 00000000         ;//   <h> SDRAM Refresh Control Register (REFRESH)
+  422 00000000         ;//     <o10.23>    REFEN: SDRAM Refresh Enable
+  423 00000000         ;//     <o10.22>    TREFMD: SDRAM Refresh Mode
+  424 00000000         ;//       <0=> CBR/Auto Refresh  <1=> Self Refresh
+  425 00000000         ;//     <o10.20..21> Trp: SDRAM RAS Pre-charge Time
+  426 00000000         ;//       <0=> 2 clocks  <1=> 3 clocks  <2=> 4 clocks  <
+                       3=> Reserved
+  427 00000000         ;//     <o10.18..19> Tsrc: SDRAM Semi Row Cycle Time
+  428 00000000         ;//       <i> SDRAM Row cycle time: Trc = Tsrc + Trp
+  429 00000000         ;//       <0=> 4 clocks  <1=> 5 clocks  <2=> 6 clocks  <
+                       3=> 7 clocks
+  430 00000000         ;//     <o10.0..10> Refresh Counter <0-1023>
+  431 00000000         ;//       <i> Refresh Period = (2048 - Refresh Count + 1
+                       ) / HCLK
+  432 00000000         ;//   </h>
+  433 00000000         ;//   <h> Flexible Bank Size Register (BANKSIZE)
+  434 00000000         ;//     <o11.7>     BURST_EN: ARM Core Burst Operation E
+                       nable
+  435 00000000         ;//     <o11.5>     SCKE_EN: SDRAM Power Down Mode Enabl
+                       e
+  436 00000000         ;//     <o11.4>     SCLK_EN: SCLK Enabled During SDRAM A
+                       ccess Cycle
+  437 00000000         ;//       <0=> SCLK is always active  <1=> SCLK is activ
+                       e only during the access
+  438 00000000         ;//     <o11.0..2>  BK76MAP: BANK6 and BANK7 Memory Map
+  439 00000000         ;//       <0=> 32MB / 32MB  <1=> 64MB / 64MB  <2=> 128MB
+                        / 128MB
+  440 00000000         ;//       <4=> 2MB / 2MB    <5=> 4MB / 4MB    <6=> 8MB /
+                        8MB      <7=> 16MB / 16MB
+  441 00000000         ;//     <o11.0..10> Refresh Counter <0-1023>
+  442 00000000         ;//       <i> Refresh Period = (2048 - Refresh Count + 1
+                       ) / HCLK
+  443 00000000         ;//   </h>
+  444 00000000         ;//   <h> SDRAM Mode Register Set Register 6 (MRSRB6)
+
+
+
+ARM Macro Assembler    Page 14 
+
+
+  445 00000000         ;//     <o12.7>     WBL: Write Burst Length
+  446 00000000         ;//       <0=> Burst (Fixed)
+  447 00000000         ;//     <o12.7..8>  TM: Test Mode
+  448 00000000         ;//       <0=> Mode register set (Fixed)
+  449 00000000         ;//     <o12.4..6>  CL: CAS Latency
+  450 00000000         ;//       <0=> 1 clocks  <1=> 2 clocks  <2=> 3 clocks
+  451 00000000         ;//     <o12.3>     BT: Burst Type
+  452 00000000         ;//       <0=> Sequential (Fixed)
+  453 00000000         ;//     <o12.0..2>  BL: Burst Length
+  454 00000000         ;//       <0=> 1 (Fixed)
+  455 00000000         ;//   </h>
+  456 00000000         ;//   <h> SDRAM Mode Register Set Register 7 (MRSRB7)
+  457 00000000         ;//     <o13.7>     WBL: Write Burst Length
+  458 00000000         ;//       <0=> Burst (Fixed)
+  459 00000000         ;//     <o13.7..8>  TM: Test Mode
+  460 00000000         ;//       <0=> Mode register set (Fixed)
+  461 00000000         ;//     <o13.4..6>  CL: CAS Latency
+  462 00000000         ;//       <0=> 1 clocks  <1=> 2 clocks  <2=> 3 clocks
+  463 00000000         ;//     <o13.3>     BT: Burst Type
+  464 00000000         ;//       <0=> Sequential (Fixed)
+  465 00000000         ;//     <o13.0..2>  BL: Burst Length
+  466 00000000         ;//       <0=> 1 (Fixed)
+  467 00000000         ;//   </h>
+  468 00000000         ;// </e> Memory Controller Setup
+  469 00000000 00000000 
+                       MC_SETUP
+                               EQU              0
+  470 00000000 22000000 
+                       BWSCON_Val
+                               EQU              0x22000000
+  471 00000000 00000700 
+                       BANKCON0_Val
+                               EQU              0x00000700
+  472 00000000 00000700 
+                       BANKCON1_Val
+                               EQU              0x00000700
+  473 00000000 00000700 
+                       BANKCON2_Val
+                               EQU              0x00000700
+  474 00000000 00000700 
+                       BANKCON3_Val
+                               EQU              0x00000700
+  475 00000000 00000700 
+                       BANKCON4_Val
+                               EQU              0x00000700
+  476 00000000 00000700 
+                       BANKCON5_Val
+                               EQU              0x00000700
+  477 00000000 00018005 
+                       BANKCON6_Val
+                               EQU              0x00018005
+  478 00000000 00018005 
+                       BANKCON7_Val
+                               EQU              0x00018005
+  479 00000000 008404F3 
+                       REFRESH_Val
+                               EQU              0x008404F3
+  480 00000000 00000032 
+                       BANKSIZE_Val
+
+
+
+ARM Macro Assembler    Page 15 
+
+
+                               EQU              0x00000032
+  481 00000000 00000020 
+                       MRSRB6_Val
+                               EQU              0x00000020
+  482 00000000 00000020 
+                       MRSRB7_Val
+                               EQU              0x00000020
+  483 00000000         
+  484 00000000         
+  485 00000000         ;----------------------- I/O Port Definitions ----------
+                       ------------------------
+  486 00000000         
+  487 00000000 56000000 
+                       GPA_BASE
+                               EQU              0x56000000  ; GPA Base Address
+  488 00000000 56000010 
+                       GPB_BASE
+                               EQU              0x56000010  ; GPB Base Address
+  489 00000000 56000020 
+                       GPC_BASE
+                               EQU              0x56000020  ; GPC Base Address
+  490 00000000 56000030 
+                       GPD_BASE
+                               EQU              0x56000030  ; GPD Base Address
+  491 00000000 56000040 
+                       GPE_BASE
+                               EQU              0x56000040  ; GPE Base Address
+  492 00000000 56000050 
+                       GPF_BASE
+                               EQU              0x56000050  ; GPF Base Address
+  493 00000000 56000060 
+                       GPG_BASE
+                               EQU              0x56000060  ; GPG Base Address
+  494 00000000 56000070 
+                       GPH_BASE
+                               EQU              0x56000070  ; GPH Base Address
+  495 00000000 560000D0 
+                       GPJ_BASE
+                               EQU              0x560000D0  ; GPJ Base Address
+  496 00000000 00000000 
+                       GPCON_OFS
+                               EQU              0x00        ; Control Register 
+                                                            Offset
+  497 00000000 00000004 
+                       GPDAT_OFS
+                               EQU              0x04        ; Data Register Off
+                                                            set
+  498 00000000 00000008 
+                       GPUP_OFS
+                               EQU              0x08        ; Pull-up Disable R
+                                                            egister Offset
+  499 00000000         
+  500 00000000         ;// <e> I/O Setup
+  501 00000000 00000001 
+                       GP_SETUP
+                               EQU              1
+  502 00000000         
+  503 00000000         ;//   <e> Port A Settings
+  504 00000000         ;//     <h> Port A Control Register (GPACON)
+
+
+
+ARM Macro Assembler    Page 16 
+
+
+  505 00000000         ;//         <o1.22>     GPA22     <0=> Output   <1=> nFC
+                       E
+  506 00000000         ;//         <o1.21>     GPA21     <0=> Output   <1=> nRS
+                       TOUT
+  507 00000000         ;//         <o1.20>     GPA20     <0=> Output   <1=> nFR
+                       E
+  508 00000000         ;//         <o1.19>     GPA19     <0=> Output   <1=> nFW
+                       E
+  509 00000000         ;//         <o1.18>     GPA18     <0=> Output   <1=> ALE
+                       
+  510 00000000         ;//         <o1.17>     GPA17     <0=> Output   <1=> CLE
+                       
+  511 00000000         ;//         <o1.16>     GPA16     <0=> Output   <1=> nGC
+                       S[5]
+  512 00000000         ;//         <o1.15>     GPA15     <0=> Output   <1=> nGC
+                       S[4]
+  513 00000000         ;//         <o1.14>     GPA14     <0=> Output   <1=> nGC
+                       S[3]
+  514 00000000         ;//         <o1.13>     GPA13     <0=> Output   <1=> nGC
+                       S[2]
+  515 00000000         ;//         <o1.12>     GPA12     <0=> Output   <1=> nGC
+                       S[1]
+  516 00000000         ;//         <o1.11>     GPA11     <0=> Output   <1=> ADD
+                       R26
+  517 00000000         ;//         <o1.10>     GPA10     <0=> Output   <1=> ADD
+                       R25
+  518 00000000         ;//         <o1.9>      GPA9      <0=> Output   <1=> ADD
+                       R24
+  519 00000000         ;//         <o1.8>      GPA8      <0=> Output   <1=> ADD
+                       R23
+  520 00000000         ;//         <o1.7>      GPA7      <0=> Output   <1=> ADD
+                       R22
+  521 00000000         ;//         <o1.6>      GPA6      <0=> Output   <1=> ADD
+                       R21
+  522 00000000         ;//         <o1.5>      GPA5      <0=> Output   <1=> ADD
+                       R20
+  523 00000000         ;//         <o1.4>      GPA4      <0=> Output   <1=> ADD
+                       R19
+  524 00000000         ;//         <o1.3>      GPA3      <0=> Output   <1=> ADD
+                       R18
+  525 00000000         ;//         <o1.2>      GPA2      <0=> Output   <1=> ADD
+                       R17
+  526 00000000         ;//         <o1.1>      GPA1      <0=> Output   <1=> ADD
+                       R16
+  527 00000000         ;//         <o1.0>      GPA0      <0=> Output   <1=> ADD
+                       R0
+  528 00000000         ;//     </h>
+  529 00000000         ;//   </e>
+  530 00000000 00000000 
+                       GPA_SETUP
+                               EQU              0
+  531 00000000 000003FF 
+                       GPACON_Val
+                               EQU              0x000003FF
+  532 00000000         
+  533 00000000         ;//   <e> Port B Settings
+  534 00000000         ;//     <h> Port B Control Register (GPBCON)
+  535 00000000         ;//       <o1.20..21> GPB10     <0=> Input <1=> Output <
+                       2=> nXDREQ0 <3=> Reserved
+
+
+
+ARM Macro Assembler    Page 17 
+
+
+  536 00000000         ;//       <o1.18..19> GPB9      <0=> Input <1=> Output <
+                       2=> nXDACK0 <3=> Reserved
+  537 00000000         ;//       <o1.16..17> GPB8      <0=> Input <1=> Output <
+                       2=> nXDREQ1 <3=> Reserved
+  538 00000000         ;//       <o1.14..15> GPB7      <0=> Input <1=> Output <
+                       2=> nXDACK1 <3=> Reserved
+  539 00000000         ;//       <o1.12..13> GPB6      <0=> Input <1=> Output <
+                       2=> nXBREQ  <3=> Reserved
+  540 00000000         ;//       <o1.10..11> GPB5      <0=> Input <1=> Output <
+                       2=> nXBACK  <3=> Reserved
+  541 00000000         ;//       <o1.8..9>   GPB4      <0=> Input <1=> Output <
+                       2=> TCLK[0] <3=> Reserved
+  542 00000000         ;//       <o1.6..7>   GPB3      <0=> Input <1=> Output <
+                       2=> TOUT3   <3=> Reserved
+  543 00000000         ;//       <o1.4..5>   GPB2      <0=> Input <1=> Output <
+                       2=> TOUT2   <3=> Reserved
+  544 00000000         ;//       <o1.2..3>   GPB1      <0=> Input <1=> Output <
+                       2=> TOUT1   <3=> Reserved
+  545 00000000         ;//       <o1.0..1>   GPB0      <0=> Input <1=> Output <
+                       2=> TOUT0   <3=> Reserved
+  546 00000000         ;//     </h>
+  547 00000000         ;//     <h> Port B Pull-up Settings Register (GPBUP)
+  548 00000000         ;//       <o2.10>     GPB10 Pull-up Disable
+  549 00000000         ;//       <o2.9>      GPB9  Pull-up Disable
+  550 00000000         ;//       <o2.8>      GPB8  Pull-up Disable
+  551 00000000         ;//       <o2.7>      GPB7  Pull-up Disable
+  552 00000000         ;//       <o2.6>      GPB6  Pull-up Disable
+  553 00000000         ;//       <o2.5>      GPB5  Pull-up Disable
+  554 00000000         ;//       <o2.4>      GPB4  Pull-up Disable
+  555 00000000         ;//       <o2.3>      GPB3  Pull-up Disable
+  556 00000000         ;//       <o2.2>      GPB2  Pull-up Disable
+  557 00000000         ;//       <o2.1>      GPB1  Pull-up Disable
+  558 00000000         ;//       <o2.0>      GPB0  Pull-up Disable
+  559 00000000         ;//     </h>
+  560 00000000         ;//   </e>
+  561 00000000 00000000 
+                       GPB_SETUP
+                               EQU              0
+  562 00000000 00000000 
+                       GPBCON_Val
+                               EQU              0x00000000
+  563 00000000 00000000 
+                       GPBUP_Val
+                               EQU              0x00000000
+  564 00000000         
+  565 00000000         ;//   <e> Port C Settings
+  566 00000000         ;//     <h> Port C Control Register (GPCCON)
+  567 00000000         ;//       <o1.30..31> GPC15     <0=> Input <1=> Output <
+                       2=> VD[7]   <3=> Reserved
+  568 00000000         ;//       <o1.28..29> GPC14     <0=> Input <1=> Output <
+                       2=> VD[6]   <3=> Reserved
+  569 00000000         ;//       <o1.26..27> GPC13     <0=> Input <1=> Output <
+                       2=> VD[5]   <3=> Reserved
+  570 00000000         ;//       <o1.24..25> GPC12     <0=> Input <1=> Output <
+                       2=> VD[4]   <3=> Reserved
+  571 00000000         ;//       <o1.22..23> GPC11     <0=> Input <1=> Output <
+                       2=> VD[3]   <3=> Reserved
+  572 00000000         ;//       <o1.20..21> GPC10     <0=> Input <1=> Output <
+                       2=> VD[2]   <3=> Reserved
+
+
+
+ARM Macro Assembler    Page 18 
+
+
+  573 00000000         ;//       <o1.18..19> GPC9      <0=> Input <1=> Output <
+                       2=> VD[1]   <3=> Reserved
+  574 00000000         ;//       <o1.16..17> GPC8      <0=> Input <1=> Output <
+                       2=> VD[0]   <3=> Reserved
+  575 00000000         ;//       <o1.14..15> GPC7      <0=> Input <1=> Output <
+                       2=> LCD_LPCREVB <3=> Reserved
+  576 00000000         ;//       <o1.12..13> GPC6      <0=> Input <1=> Output <
+                       2=> LCD_LPCREV  <3=> Reserved
+  577 00000000         ;//       <o1.10..11> GPC5      <0=> Input <1=> Output <
+                       2=> LCD_LPCOE   <3=> Reserved
+  578 00000000         ;//       <o1.8..9>   GPC4      <0=> Input <1=> Output <
+                       2=> VM      <3=> I2SSDI
+  579 00000000         ;//       <o1.6..7>   GPC3      <0=> Input <1=> Output <
+                       2=> VFRAME  <3=> Reserved
+  580 00000000         ;//       <o1.4..5>   GPC2      <0=> Input <1=> Output <
+                       2=> VLINE   <3=> Reserved
+  581 00000000         ;//       <o1.2..3>   GPC1      <0=> Input <1=> Output <
+                       2=> VCLK    <3=> Reserved
+  582 00000000         ;//       <o1.0..1>   GPC0      <0=> Input <1=> Output <
+                       2=> LEND    <3=> Reserved
+  583 00000000         ;//     </h>
+  584 00000000         ;//     <h> Port C Pull-up Settings Register (GPCUP)
+  585 00000000         ;//       <o2.15>     GPC15 Pull-up Disable
+  586 00000000         ;//       <o2.14>     GPC14 Pull-up Disable
+  587 00000000         ;//       <o2.13>     GPC13 Pull-up Disable
+  588 00000000         ;//       <o2.12>     GPC12 Pull-up Disable
+  589 00000000         ;//       <o2.11>     GPC11 Pull-up Disable
+  590 00000000         ;//       <o2.10>     GPC10 Pull-up Disable
+  591 00000000         ;//       <o2.9>      GPC9  Pull-up Disable
+  592 00000000         ;//       <o2.8>      GPC8  Pull-up Disable
+  593 00000000         ;//       <o2.7>      GPC7  Pull-up Disable
+  594 00000000         ;//       <o2.6>      GPC6  Pull-up Disable
+  595 00000000         ;//       <o2.5>      GPC5  Pull-up Disable
+  596 00000000         ;//       <o2.4>      GPC4  Pull-up Disable
+  597 00000000         ;//       <o2.3>      GPC3  Pull-up Disable
+  598 00000000         ;//       <o2.2>      GPC2  Pull-up Disable
+  599 00000000         ;//       <o2.1>      GPC1  Pull-up Disable
+  600 00000000         ;//       <o2.0>      GPC0  Pull-up Disable
+  601 00000000         ;//     </h>
+  602 00000000         ;//   </e>
+  603 00000000 00000000 
+                       GPC_SETUP
+                               EQU              0
+  604 00000000 00000000 
+                       GPCCON_Val
+                               EQU              0x00000000
+  605 00000000 00000000 
+                       GPCUP_Val
+                               EQU              0x00000000
+  606 00000000         
+  607 00000000         ;//   <e> Port D Settings
+  608 00000000         ;//     <h> Port D Control Register (GPDCON)
+  609 00000000         ;//       <o1.30..31> GPD15     <0=> Input <1=> Output <
+                       2=> VD[23]  <3=> nSS0
+  610 00000000         ;//       <o1.28..29> GPD14     <0=> Input <1=> Output <
+                       2=> VD[22]  <3=> nSS1
+  611 00000000         ;//       <o1.26..27> GPD13     <0=> Input <1=> Output <
+                       2=> VD[21]  <3=> Reserved
+  612 00000000         ;//       <o1.24..25> GPD12     <0=> Input <1=> Output <
+
+
+
+ARM Macro Assembler    Page 19 
+
+
+                       2=> VD[20]  <3=> Reserved
+  613 00000000         ;//       <o1.22..23> GPD11     <0=> Input <1=> Output <
+                       2=> VD[19]  <3=> Reserved
+  614 00000000         ;//       <o1.20..21> GPD10     <0=> Input <1=> Output <
+                       2=> VD[18]  <3=> SPICLK1
+  615 00000000         ;//       <o1.18..19> GPD9      <0=> Input <1=> Output <
+                       2=> VD[17]  <3=> SPIMOSI1
+  616 00000000         ;//       <o1.16..17> GPD8      <0=> Input <1=> Output <
+                       2=> VD[16]  <3=> SPIMISO1
+  617 00000000         ;//       <o1.14..15> GPD7      <0=> Input <1=> Output <
+                       2=> VD[15]  <3=> Reserved
+  618 00000000         ;//       <o1.12..13> GPD6      <0=> Input <1=> Output <
+                       2=> VD[14]  <3=> Reserved
+  619 00000000         ;//       <o1.10..11> GPD5      <0=> Input <1=> Output <
+                       2=> VD[13]  <3=> Reserved
+  620 00000000         ;//       <o1.8..9>   GPD4      <0=> Input <1=> Output <
+                       2=> VD[12]  <3=> Reserved
+  621 00000000         ;//       <o1.6..7>   GPD3      <0=> Input <1=> Output <
+                       2=> VD[11]  <3=> Reserved
+  622 00000000         ;//       <o1.4..5>   GPD2      <0=> Input <1=> Output <
+                       2=> VD[10]  <3=> Reserved
+  623 00000000         ;//       <o1.2..3>   GPD1      <0=> Input <1=> Output <
+                       2=> VD[9]   <3=> Reserved
+  624 00000000         ;//       <o1.0..1>   GPD0      <0=> Input <1=> Output <
+                       2=> VD[8]   <3=> Reserved
+  625 00000000         ;//     </h>
+  626 00000000         ;//     <h> Port D Pull-up Settings Register (GPDUP)
+  627 00000000         ;//       <o2.15>     GPD15 Pull-up Disable
+  628 00000000         ;//       <o2.14>     GPD14 Pull-up Disable
+  629 00000000         ;//       <o2.13>     GPD13 Pull-up Disable
+  630 00000000         ;//       <o2.12>     GPD12 Pull-up Disable
+  631 00000000         ;//       <o2.11>     GPD11 Pull-up Disable
+  632 00000000         ;//       <o2.10>     GPD10 Pull-up Disable
+  633 00000000         ;//       <o2.9>      GPD9  Pull-up Disable
+  634 00000000         ;//       <o2.8>      GPD8  Pull-up Disable
+  635 00000000         ;//       <o2.7>      GPD7  Pull-up Disable
+  636 00000000         ;//       <o2.6>      GPD6  Pull-up Disable
+  637 00000000         ;//       <o2.5>      GPD5  Pull-up Disable
+  638 00000000         ;//       <o2.4>      GPD4  Pull-up Disable
+  639 00000000         ;//       <o2.3>      GPD3  Pull-up Disable
+  640 00000000         ;//       <o2.2>      GPD2  Pull-up Disable
+  641 00000000         ;//       <o2.1>      GPD1  Pull-up Disable
+  642 00000000         ;//       <o2.0>      GPD0  Pull-up Disable
+  643 00000000         ;//     </h>
+  644 00000000         ;//   </e>
+  645 00000000 00000000 
+                       GPD_SETUP
+                               EQU              0
+  646 00000000 00000000 
+                       GPDCON_Val
+                               EQU              0x00000000
+  647 00000000 00000000 
+                       GPDUP_Val
+                               EQU              0x00000000
+  648 00000000         
+  649 00000000         ;//   <e> Port E Settings
+  650 00000000         ;//     <h> Port E Control Register (GPECON)
+  651 00000000         ;//       <o1.30..31> GPE15     <0=> Input <1=> Output <
+                       2=> IICSDA  <3=> Reserved
+
+
+
+ARM Macro Assembler    Page 20 
+
+
+  652 00000000         ;//         <i> This pad is open-drain, and has no pull-
+                       up option.
+  653 00000000         ;//       <o1.28..29> GPE14     <0=> Input <1=> Output <
+                       2=> IICSCL  <3=> Reserved
+  654 00000000         ;//         <i> This pad is open-drain, and has no pull-
+                       up option.
+  655 00000000         ;//       <o1.26..27> GPE13     <0=> Input <1=> Output <
+                       2=> SPICLK0 <3=> Reserved
+  656 00000000         ;//       <o1.24..25> GPE12     <0=> Input <1=> Output <
+                       2=> SPIMOSI0 <3=> Reserved
+  657 00000000         ;//       <o1.22..23> GPE11     <0=> Input <1=> Output <
+                       2=> SPIMISO0 <3=> Reserved
+  658 00000000         ;//       <o1.20..21> GPE10     <0=> Input <1=> Output <
+                       2=> SDDAT3  <3=> Reserved
+  659 00000000         ;//       <o1.18..19> GPE9      <0=> Input <1=> Output <
+                       2=> SDDAT2  <3=> Reserved
+  660 00000000         ;//       <o1.16..17> GPE8      <0=> Input <1=> Output <
+                       2=> SDDAT1  <3=> Reserved
+  661 00000000         ;//       <o1.14..15> GPE7      <0=> Input <1=> Output <
+                       2=> SDDAT0  <3=> Reserved
+  662 00000000         ;//       <o1.12..13> GPE6      <0=> Input <1=> Output <
+                       2=> SDCMD   <3=> Reserved
+  663 00000000         ;//       <o1.10..11> GPE5      <0=> Input <1=> Output <
+                       2=> SDCLK   <3=> Reserved
+  664 00000000         ;//       <o1.8..9>   GPE4      <0=> Input <1=> Output <
+                       2=> I2SDO   <3=> AC_SDATA_OUT
+  665 00000000         ;//       <o1.6..7>   GPE3      <0=> Input <1=> Output <
+                       2=> I2SDI   <3=> AC_SDATA_IN
+  666 00000000         ;//       <o1.4..5>   GPE2      <0=> Input <1=> Output <
+                       2=> CDCLK   <3=> AC_nRESET
+  667 00000000         ;//       <o1.2..3>   GPE1      <0=> Input <1=> Output <
+                       2=> I2SSCLK <3=> AC_BIT_CLK
+  668 00000000         ;//       <o1.0..1>   GPE0      <0=> Input <1=> Output <
+                       2=> I2SLRCK <3=> AC_SYNC
+  669 00000000         ;//     </h>
+  670 00000000         ;//     <h> Port E Pull-up Settings Register (GPEUP)
+  671 00000000         ;//       <o2.13>     GPE13 Pull-up Disable
+  672 00000000         ;//       <o2.12>     GPE12 Pull-up Disable
+  673 00000000         ;//       <o2.11>     GPE11 Pull-up Disable
+  674 00000000         ;//       <o2.10>     GPE10 Pull-up Disable
+  675 00000000         ;//       <o2.9>      GPE9  Pull-up Disable
+  676 00000000         ;//       <o2.8>      GPE8  Pull-up Disable
+  677 00000000         ;//       <o2.7>      GPE7  Pull-up Disable
+  678 00000000         ;//       <o2.6>      GPE6  Pull-up Disable
+  679 00000000         ;//       <o2.5>      GPE5  Pull-up Disable
+  680 00000000         ;//       <o2.4>      GPE4  Pull-up Disable
+  681 00000000         ;//       <o2.3>      GPE3  Pull-up Disable
+  682 00000000         ;//       <o2.2>      GPE2  Pull-up Disable
+  683 00000000         ;//       <o2.1>      GPE1  Pull-up Disable
+  684 00000000         ;//       <o2.0>      GPE0  Pull-up Disable
+  685 00000000         ;//     </h>
+  686 00000000         ;//   </e>
+  687 00000000 00000000 
+                       GPE_SETUP
+                               EQU              0
+  688 00000000 00000000 
+                       GPECON_Val
+                               EQU              0x00000000
+  689 00000000 00000000 
+
+
+
+ARM Macro Assembler    Page 21 
+
+
+                       GPEUP_Val
+                               EQU              0x00000000
+  690 00000000         
+  691 00000000         ;//   <e> Port F Settings
+  692 00000000         ;//     <h> Port F Control Register (GPFCON)
+  693 00000000         ;//       <o1.14..15> GPF7      <0=> Input <1=> Output <
+                       2=> EINT[7] <3=> Reserved
+  694 00000000         ;//       <o1.12..13> GPF6      <0=> Input <1=> Output <
+                       2=> EINT[6] <3=> Reserved
+  695 00000000         ;//       <o1.10..11> GPF5      <0=> Input <1=> Output <
+                       2=> EINT[5] <3=> Reserved
+  696 00000000         ;//       <o1.8..9>   GPF4      <0=> Input <1=> Output <
+                       2=> EINT[4] <3=> Reserved
+  697 00000000         ;//       <o1.6..7>   GPF3      <0=> Input <1=> Output <
+                       2=> EINT[3] <3=> Reserved
+  698 00000000         ;//       <o1.4..5>   GPF2      <0=> Input <1=> Output <
+                       2=> EINT[2] <3=> Reserved
+  699 00000000         ;//       <o1.2..3>   GPF1      <0=> Input <1=> Output <
+                       2=> EINT[1] <3=> Reserved
+  700 00000000         ;//       <o1.0..1>   GPF0      <0=> Input <1=> Output <
+                       2=> EINT[0] <3=> Reserved
+  701 00000000         ;//     </h>
+  702 00000000         ;//     <h> Port F Pull-up Settings Register (GPFUP)
+  703 00000000         ;//       <o2.7>      GPF7  Pull-up Disable
+  704 00000000         ;//       <o2.6>      GPF6  Pull-up Disable
+  705 00000000         ;//       <o2.5>      GPF5  Pull-up Disable
+  706 00000000         ;//       <o2.4>      GPF4  Pull-up Disable
+  707 00000000         ;//       <o2.3>      GPF3  Pull-up Disable
+  708 00000000         ;//       <o2.2>      GPF2  Pull-up Disable
+  709 00000000         ;//       <o2.1>      GPF1  Pull-up Disable
+  710 00000000         ;//       <o2.0>      GPF0  Pull-up Disable
+  711 00000000         ;//     </h>
+  712 00000000         ;//   </e>
+  713 00000000 00000001 
+                       GPF_SETUP
+                               EQU              1
+  714 00000000 000000AA 
+                       GPFCON_Val
+                               EQU              0x000000AA
+  715 00000000 0000000F 
+                       GPFUP_Val
+                               EQU              0x0000000F
+  716 00000000         
+  717 00000000         ;//   <e> Port G Settings
+  718 00000000         ;//     <h> Port G Control Register (GPGCON)
+  719 00000000         ;//       <o1.30..31> GPG15     <0=> Input <1=> Output <
+                       2=> EINT[23] <3=> Reserved
+  720 00000000         ;//       <o1.28..29> GPG14     <0=> Input <1=> Output <
+                       2=> EINT[22] <3=> Reserved
+  721 00000000         ;//       <o1.26..27> GPG13     <0=> Input <1=> Output <
+                       2=> EINT[21] <3=> Reserved
+  722 00000000         ;//       <o1.24..25> GPG12     <0=> Input <1=> Output <
+                       2=> EINT[20] <3=> Reserved
+  723 00000000         ;//       <o1.22..23> GPG11     <0=> Input <1=> Output <
+                       2=> EINT[19] <3=> TCLK[1]
+  724 00000000         ;//       <o1.20..21> GPG10     <0=> Input <1=> Output <
+                       2=> EINT[18] <3=> nCTS1
+  725 00000000         ;//       <o1.18..19> GPG9      <0=> Input <1=> Output <
+                       2=> EINT[17] <3=> nRTS1
+
+
+
+ARM Macro Assembler    Page 22 
+
+
+  726 00000000         ;//       <o1.16..17> GPG8      <0=> Input <1=> Output <
+                       2=> EINT[16] <3=> Reserved
+  727 00000000         ;//       <o1.14..15> GPG7      <0=> Input <1=> Output <
+                       2=> EINT[15] <3=> SPICLK1
+  728 00000000         ;//       <o1.12..13> GPG6      <0=> Input <1=> Output <
+                       2=> EINT[14] <3=> SPIMOSI1
+  729 00000000         ;//       <o1.10..11> GPG5      <0=> Input <1=> Output <
+                       2=> EINT[13] <3=> SPIMISO1
+  730 00000000         ;//       <o1.8..9>   GPG4      <0=> Input <1=> Output <
+                       2=> EINT[12] <3=> LCD_PWRDN
+  731 00000000         ;//       <o1.6..7>   GPG3      <0=> Input <1=> Output <
+                       2=> EINT[11] <3=> nSS1
+  732 00000000         ;//       <o1.4..5>   GPG2      <0=> Input <1=> Output <
+                       2=> EINT[10] <3=> nSS0
+  733 00000000         ;//       <o1.2..3>   GPG1      <0=> Input <1=> Output <
+                       2=> EINT[9]  <3=> Reserved
+  734 00000000         ;//       <o1.0..1>   GPG0      <0=> Input <1=> Output <
+                       2=> EINT[8]  <3=> Reserved
+  735 00000000         ;//     </h>
+  736 00000000         ;//     <h> Port G Pull-up Settings Register (GPGUP)
+  737 00000000         ;//       <o2.15>     GPG15 Pull-up Disable
+  738 00000000         ;//       <o2.14>     GPG14 Pull-up Disable
+  739 00000000         ;//       <o2.13>     GPG13 Pull-up Disable
+  740 00000000         ;//       <o2.12>     GPG12 Pull-up Disable
+  741 00000000         ;//       <o2.11>     GPG11 Pull-up Disable
+  742 00000000         ;//       <o2.10>     GPG10 Pull-up Disable
+  743 00000000         ;//       <o2.9>      GPG9  Pull-up Disable
+  744 00000000         ;//       <o2.8>      GPG8  Pull-up Disable
+  745 00000000         ;//       <o2.7>      GPG7  Pull-up Disable
+  746 00000000         ;//       <o2.6>      GPG6  Pull-up Disable
+  747 00000000         ;//       <o2.5>      GPG5  Pull-up Disable
+  748 00000000         ;//       <o2.4>      GPG4  Pull-up Disable
+  749 00000000         ;//       <o2.3>      GPG3  Pull-up Disable
+  750 00000000         ;//       <o2.2>      GPG2  Pull-up Disable
+  751 00000000         ;//       <o2.1>      GPG1  Pull-up Disable
+  752 00000000         ;//       <o2.0>      GPG0  Pull-up Disable
+  753 00000000         ;//     </h>
+  754 00000000         ;//   </e>
+  755 00000000 00000000 
+                       GPG_SETUP
+                               EQU              0
+  756 00000000 00000000 
+                       GPGCON_Val
+                               EQU              0x00000000
+  757 00000000 00000000 
+                       GPGUP_Val
+                               EQU              0x00000000
+  758 00000000         
+  759 00000000         ;//   <e> Port H Settings
+  760 00000000         ;//     <h> Port H Control Register (GPHCON)
+  761 00000000         ;//       <o1.20..21> GPH10     <0=> Input <1=> Output <
+                       2=> CLKOUT1  <3=> Reserved
+  762 00000000         ;//       <o1.18..19> GPH9      <0=> Input <1=> Output <
+                       2=> CLKOUT0  <3=> Reserved
+  763 00000000         ;//       <o1.16..17> GPH8      <0=> Input <1=> Output <
+                       2=> UEXTCLK  <3=> Reserved
+  764 00000000         ;//       <o1.14..15> GPH7      <0=> Input <1=> Output <
+                       2=> RXD[2]   <3=> nCTS1
+  765 00000000         ;//       <o1.12..13> GPH6      <0=> Input <1=> Output <
+
+
+
+ARM Macro Assembler    Page 23 
+
+
+                       2=> TXD[2]   <3=> nRTS1
+  766 00000000         ;//       <o1.10..11> GPH5      <0=> Input <1=> Output <
+                       2=> RXD[1]   <3=> Reserved
+  767 00000000         ;//       <o1.8..9>   GPH4      <0=> Input <1=> Output <
+                       2=> TXD[1]   <3=> Reserved
+  768 00000000         ;//       <o1.6..7>   GPH3      <0=> Input <1=> Output <
+                       2=> RXD[0]   <3=> Reserved
+  769 00000000         ;//       <o1.4..5>   GPH2      <0=> Input <1=> Output <
+                       2=> TXD[0]   <3=> Reserved
+  770 00000000         ;//       <o1.2..3>   GPH1      <0=> Input <1=> Output <
+                       2=> nRTS0    <3=> Reserved
+  771 00000000         ;//       <o1.0..1>   GPH0      <0=> Input <1=> Output <
+                       2=> nCTS0    <3=> Reserved
+  772 00000000         ;//     </h>
+  773 00000000         ;//     <h> Port H Pull-up Settings Register (GPHUP)
+  774 00000000         ;//       <o2.10>     GPH10 Pull-up Disable
+  775 00000000         ;//       <o2.9>      GPH9  Pull-up Disable
+  776 00000000         ;//       <o2.8>      GPH8  Pull-up Disable
+  777 00000000         ;//       <o2.7>      GPH7  Pull-up Disable
+  778 00000000         ;//       <o2.6>      GPH6  Pull-up Disable
+  779 00000000         ;//       <o2.5>      GPH5  Pull-up Disable
+  780 00000000         ;//       <o2.4>      GPH4  Pull-up Disable
+  781 00000000         ;//       <o2.3>      GPH3  Pull-up Disable
+  782 00000000         ;//       <o2.2>      GPH2  Pull-up Disable
+  783 00000000         ;//       <o2.1>      GPH1  Pull-up Disable
+  784 00000000         ;//       <o2.0>      GPH0  Pull-up Disable
+  785 00000000         ;//     </h>
+  786 00000000         ;//   </e>
+  787 00000000 00000000 
+                       GPH_SETUP
+                               EQU              0
+  788 00000000 00000000 
+                       GPHCON_Val
+                               EQU              0x00000000
+  789 00000000 00000000 
+                       GPHUP_Val
+                               EQU              0x00000000
+  790 00000000         
+  791 00000000         ;//   <e> Port J Settings
+  792 00000000         ;//     <h> Port J Control Register (GPJCON)
+  793 00000000         ;//       <o1.24..25> GPJ12     <0=> Input <1=> Output <
+                       2=> CAMRESET   <3=> Reserved
+  794 00000000         ;//       <o1.22..23> GPJ11     <0=> Input <1=> Output <
+                       2=> CAMCLKOUT  <3=> Reserved
+  795 00000000         ;//       <o1.20..21> GPJ10     <0=> Input <1=> Output <
+                       2=> CAMHREF    <3=> Reserved
+  796 00000000         ;//       <o1.18..19> GPJ9      <0=> Input <1=> Output <
+                       2=> CAMVSYNC   <3=> Reserved
+  797 00000000         ;//       <o1.16..17> GPJ8      <0=> Input <1=> Output <
+                       2=> CAMPCLK    <3=> Reserved
+  798 00000000         ;//       <o1.14..15> GPJ7      <0=> Input <1=> Output <
+                       2=> CAMDATA[7] <3=> Reserved
+  799 00000000         ;//       <o1.12..13> GPJ6      <0=> Input <1=> Output <
+                       2=> CAMDATA[6] <3=> Reserved
+  800 00000000         ;//       <o1.10..11> GPJ5      <0=> Input <1=> Output <
+                       2=> CAMDATA[5] <3=> Reserved
+  801 00000000         ;//       <o1.8..9>   GPJ4      <0=> Input <1=> Output <
+                       2=> CAMDATA[4] <3=> Reserved
+  802 00000000         ;//       <o1.6..7>   GPJ3      <0=> Input <1=> Output <
+
+
+
+ARM Macro Assembler    Page 24 
+
+
+                       2=> CAMDATA[3] <3=> Reserved
+  803 00000000         ;//       <o1.4..5>   GPJ2      <0=> Input <1=> Output <
+                       2=> CAMDATA[2] <3=> Reserved
+  804 00000000         ;//       <o1.2..3>   GPJ1      <0=> Input <1=> Output <
+                       2=> CAMDATA[1] <3=> Reserved
+  805 00000000         ;//       <o1.0..1>   GPJ0      <0=> Input <1=> Output <
+                       2=> CAMDATA[0] <3=> Reserved
+  806 00000000         ;//     </h>
+  807 00000000         ;//     <h> Port J Pull-up Settings Register (GPJUP)
+  808 00000000         ;//       <o2.12>     GPJ12 Pull-up Disable
+  809 00000000         ;//       <o2.11>     GPJ11 Pull-up Disable
+  810 00000000         ;//       <o2.10>     GPJ10 Pull-up Disable
+  811 00000000         ;//       <o2.9>      GPJ9  Pull-up Disable
+  812 00000000         ;//       <o2.8>      GPJ8  Pull-up Disable
+  813 00000000         ;//       <o2.7>      GPJ7  Pull-up Disable
+  814 00000000         ;//       <o2.6>      GPJ6  Pull-up Disable
+  815 00000000         ;//       <o2.5>      GPJ5  Pull-up Disable
+  816 00000000         ;//       <o2.4>      GPJ4  Pull-up Disable
+  817 00000000         ;//       <o2.3>      GPJ3  Pull-up Disable
+  818 00000000         ;//       <o2.2>      GPJ2  Pull-up Disable
+  819 00000000         ;//       <o2.1>      GPJ1  Pull-up Disable
+  820 00000000         ;//       <o2.0>      GPJ0  Pull-up Disable
+  821 00000000         ;//     </h>
+  822 00000000         ;//   </e>
+  823 00000000 00000000 
+                       GPJ_SETUP
+                               EQU              0
+  824 00000000 00000000 
+                       GPJCON_Val
+                               EQU              0x00000000
+  825 00000000 00000000 
+                       GPJUP_Val
+                               EQU              0x00000000
+  826 00000000         
+  827 00000000         ;// </e> I/O Setup
+  828 00000000         
+  829 00000000         
+  830 00000000         ;----------------------- CODE --------------------------
+                       ------------------------
+  831 00000000         
+  832 00000000                 PRESERVE8
+  833 00000000         
+  834 00000000         
+  835 00000000         ; Area Definition and Entry Point
+  836 00000000         ;  Startup Code must be linked first at Address at which
+                        it expects to run.
+  837 00000000         
+  838 00000000                 AREA             RESET, CODE, READONLY
+  839 00000000                 ARM
+  840 00000000         
+  841 00000000         ; Exception Vectors
+  842 00000000         ;  Mapped to Address 0.
+  843 00000000         ;  Absolute addressing mode must be used.
+  844 00000000         ;  Dummy Handlers are implemented as infinite loops whic
+                       h can be modified.
+  845 00000000         
+  846 00000000                 EXPORT           Entry_Point
+  847 00000000         Entry_Point
+  848 00000000 E59FF018 
+
+
+
+ARM Macro Assembler    Page 25 
+
+
+                       Vectors LDR              PC, Reset_Addr
+  849 00000004 E59FF018        LDR              PC, Undef_Addr
+  850 00000008 E59FF018        LDR              PC, SWI_Addr
+  851 0000000C E59FF018        LDR              PC, PAbt_Addr
+  852 00000010 E59FF018        LDR              PC, DAbt_Addr
+  853 00000014 E1A00000        NOP
+  854 00000018 E59FF018        LDR              PC, IRQ_Addr
+  855 0000001C E59FF018        LDR              PC, FIQ_Addr
+  856 00000020         
+  857 00000020 00000000 
+                       Reset_Addr
+                               DCD              Reset_Handler
+  858 00000024 00000000 
+                       Undef_Addr
+                               DCD              Undef_Handler
+  859 00000028 00000000 
+                       SWI_Addr
+                               DCD              SWI_Handler
+  860 0000002C 00000000 
+                       PAbt_Addr
+                               DCD              PAbt_Handler
+  861 00000030 00000000 
+                       DAbt_Addr
+                               DCD              DAbt_Handler
+  862 00000034 00000000        DCD              0           ; Reserved Address
+  863 00000038 00000000 
+                       IRQ_Addr
+                               DCD              IRQ_Handler
+  864 0000003C 00000000 
+                       FIQ_Addr
+                               DCD              FIQ_Handler
+  865 00000040         
+  866 00000040 EAFFFFFE 
+                       Undef_Handler
+                               B                Undef_Handler
+  867 00000044 EAFFFFFE 
+                       SWI_Handler
+                               B                SWI_Handler
+  868 00000048 EAFFFFFE 
+                       PAbt_Handler
+                               B                PAbt_Handler
+  869 0000004C         ;DAbt_Handler    B       DAbt_Handler
+  870 0000004C EAFFFFFE 
+                       FIQ_Handler
+                               B                FIQ_Handler
+  871 00000050         
+  872 00000050         ;*
+  873 00000050         ;*******************************************************
+                       ******************
+  874 00000050         ;*
+  875 00000050         ;* Interrupt handling
+  876 00000050         ;*
+  877 00000050         ;*******************************************************
+                       ******************
+  878 00000050         ;*
+  879 00000050         ; DAbt Handler
+  880 00000050         DAbt_Handler
+  881 00000050                 IMPORT           rt_hw_trap_dabt
+  882 00000050         
+
+
+
+ARM Macro Assembler    Page 26 
+
+
+  883 00000050 E24DD048        sub              sp, sp, #72
+  884 00000054 E88D1FFF        stmia            sp, {r0 - r12} ;/* Calling r0-r
+                                                            12     */
+  885 00000058 E28D803C        add              r8, sp, #60
+  886 0000005C E9086000        stmdb            r8, {sp, lr} ;/* Calling SP, LR
+                                                                 */
+  887 00000060 E588E000        str              lr, [r8, #0] ;/* Save calling P
+                                                            C     */
+  888 00000064 E14F6000        mrs              r6, spsr
+  889 00000068 E5886004        str              r6, [r8, #4] ;/* Save CPSR     
+                                                             */
+  890 0000006C E5880008        str              r0, [r8, #8] ;/* Save OLD_R0   
+                                                               */
+  891 00000070 E1A0000D        mov              r0, sp
+  892 00000074         
+  893 00000074 EBFFFFFE        bl               rt_hw_trap_dabt
+  894 00000078         
+  895 00000078         
+  896 00000078         ;##########################################
+  897 00000078         ; Reset Handler
+  898 00000078         
+  899 00000078                 EXPORT           Reset_Handler
+  900 00000078         Reset_Handler
+  901 00000078         
+  902 00000078         
+  903 00000078         ; Watchdog Setup ---------------------------------------
+                       ------------------------
+  904 00000078         
+  905 00000078                 IF               WT_SETUP != 0
+  906 00000078 E3A00453        LDR              R0, =WT_BASE
+  907 0000007C E3A01000        LDR              R1, =WTCON_Val
+  908 00000080 E3A02902        LDR              R2, =WTDAT_Val
+  909 00000084 E5802008        STR              R2, [R0, #WTCNT_OFS]
+  910 00000088 E5802004        STR              R2, [R0, #WTDAT_OFS]
+  911 0000008C E5801000        STR              R1, [R0, #WTCON_OFS]
+  912 00000090                 ENDIF
+  913 00000090         
+  914 00000090         
+  915 00000090         ; Clock Setup ------------------------------------------
+                       ------------------------
+  916 00000090         
+  917 00000090                 IF               (:LNOT:(:DEF:NO_CLOCK_SETUP)):L
+AND:(CLOCK_SETUP != 0)
+  933                          ENDIF
+  934 00000090         
+  935 00000090         
+  936 00000090         ; Memory Controller Setup ------------------------------
+                       ------------------------
+  937 00000090         
+  938 00000090                 IF               (:LNOT:(:DEF:NO_MC_SETUP)):LAND
+:(CLOCK_SETUP != 0)
+  966                          ENDIF
+  967 00000090         
+  968 00000090         
+  969 00000090         ; I/O Pins Setup ---------------------------------------
+                       ------------------------
+  970 00000090         
+  971 00000090                 IF               (:LNOT:(:DEF:NO_GP_SETUP)):LAND
+:(GP_SETUP != 0)
+
+
+
+ARM Macro Assembler    Page 27 
+
+
+  972 00000090         
+  973 00000090                 IF               GPA_SETUP != 0
+  977                          ENDIF
+  978 00000090         
+  979 00000090                 IF               GPB_SETUP != 0
+  985                          ENDIF
+  986 00000090         
+  987 00000090                 IF               GPC_SETUP != 0
+  993                          ENDIF
+  994 00000090         
+  995 00000090                 IF               GPD_SETUP != 0
+ 1001                          ENDIF
+ 1002 00000090         
+ 1003 00000090                 IF               GPE_SETUP != 0
+ 1009                          ENDIF
+ 1010 00000090         
+ 1011 00000090                 IF               GPF_SETUP != 0
+ 1012 00000090 E59F00F8        LDR              R0, =GPF_BASE
+ 1013 00000094 E3A010AA        LDR              R1, =GPFCON_Val
+ 1014 00000098 E5801000        STR              R1, [R0, #GPCON_OFS]
+ 1015 0000009C E3A0100F        LDR              R1, =GPFUP_Val
+ 1016 000000A0 E5801008        STR              R1, [R0, #GPUP_OFS]
+ 1017 000000A4                 ENDIF
+ 1018 000000A4         
+ 1019 000000A4                 IF               GPG_SETUP != 0
+ 1025                          ENDIF
+ 1026 000000A4         
+ 1027 000000A4                 IF               GPH_SETUP != 0
+ 1033                          ENDIF
+ 1034 000000A4         
+ 1035 000000A4                 IF               GPJ_SETUP != 0
+ 1041                          ENDIF
+ 1042 000000A4         
+ 1043 000000A4                 ENDIF
+ 1044 000000A4         
+ 1045 000000A4         
+ 1046 000000A4         ; Copy Exception Vectors to Internal RAM ---------------
+                       ------------------------
+ 1047 000000A4         
+ 1048 000000A4                 IF               :DEF:RAM_INTVEC
+ 1055                          ENDIF
+ 1056 000000A4         
+ 1057 000000A4         
+ 1058 000000A4         ; Setup Stack for each mode ----------------------------
+                       ------------------------
+ 1059 000000A4         
+ 1060 000000A4 E59F00E8        LDR              R0, =Stack_Top
+ 1061 000000A8         
+ 1062 000000A8         ;  Enter Undefined Instruction Mode and set its Stack Po
+                       inter
+ 1063 000000A8 E321F0DB        MSR              CPSR_c, #Mode_UND:OR:I_Bit:OR:F
+_Bit
+ 1064 000000AC E1A0D000        MOV              SP, R0
+ 1065 000000B0 E2400000        SUB              R0, R0, #UND_Stack_Size
+ 1066 000000B4         
+ 1067 000000B4         ;  Enter Abort Mode and set its Stack Pointer
+ 1068 000000B4 E321F0D7        MSR              CPSR_c, #Mode_ABT:OR:I_Bit:OR:F
+_Bit
+ 1069 000000B8 E1A0D000        MOV              SP, R0
+
+
+
+ARM Macro Assembler    Page 28 
+
+
+ 1070 000000BC E2400000        SUB              R0, R0, #ABT_Stack_Size
+ 1071 000000C0         
+ 1072 000000C0         ;  Enter FIQ Mode and set its Stack Pointer
+ 1073 000000C0 E321F0D1        MSR              CPSR_c, #Mode_FIQ:OR:I_Bit:OR:F
+_Bit
+ 1074 000000C4 E1A0D000        MOV              SP, R0
+ 1075 000000C8 E2400000        SUB              R0, R0, #FIQ_Stack_Size
+ 1076 000000CC         
+ 1077 000000CC         ;  Enter IRQ Mode and set its Stack Pointer
+ 1078 000000CC E321F0D2        MSR              CPSR_c, #Mode_IRQ:OR:I_Bit:OR:F
+_Bit
+ 1079 000000D0 E1A0D000        MOV              SP, R0
+ 1080 000000D4 E2400C01        SUB              R0, R0, #IRQ_Stack_Size
+ 1081 000000D8         
+ 1082 000000D8         ;  Enter Supervisor Mode and set its Stack Pointer
+ 1083 000000D8 E321F0D3        MSR              CPSR_c, #Mode_SVC:OR:I_Bit:OR:F
+_Bit
+ 1084 000000DC E1A0D000        MOV              SP, R0
+ 1085 000000E0 E2400C01        SUB              R0, R0, #SVC_Stack_Size
+ 1086 000000E4         
+ 1087 000000E4         ;  Enter User Mode and set its Stack Pointer
+ 1088 000000E4         ; MSR     CPSR_c, #Mode_USR
+ 1089 000000E4 E1A0D000        MOV              SP, R0
+ 1090 000000E8 E24DAC01        SUB              SL, SP, #USR_Stack_Size
+ 1091 000000EC         
+ 1092 000000EC         ; Enter the C code -------------------------------------
+                       ------------------------
+ 1093 000000EC         
+ 1094 000000EC                 IMPORT           __main
+ 1095 000000EC E59F00A4        LDR              R0, =__main
+ 1096 000000F0 E12FFF10        BX               R0
+ 1097 000000F4         
+ 1098 000000F4                 IMPORT           rt_interrupt_enter
+ 1099 000000F4                 IMPORT           rt_interrupt_leave
+ 1100 000000F4                 IMPORT           rt_thread_switch_interrupt_flag
+ 1101 000000F4                 IMPORT           rt_interrupt_from_thread
+ 1102 000000F4                 IMPORT           rt_interrupt_to_thread
+ 1103 000000F4                 IMPORT           rt_hw_trap_irq
+ 1104 000000F4         
+ 1105 000000F4         IRQ_Handler
+                               PROC
+ 1106 000000F4                 EXPORT           IRQ_Handler
+ 1107 000000F4 E92D5FFF        STMFD            sp!, {r0-r12,lr}
+ 1108 000000F8 EBFFFFFE        BL               rt_interrupt_enter
+ 1109 000000FC EBFFFFFE        BL               rt_hw_trap_irq
+ 1110 00000100 EBFFFFFE        BL               rt_interrupt_leave
+ 1111 00000104         
+ 1112 00000104         ; if rt_thread_switch_interrupt_flag set, jump to
+ 1113 00000104         ; rt_hw_context_switch_interrupt_do and don't return
+ 1114 00000104 E59F0090        LDR              r0, =rt_thread_switch_interrupt
+_flag
+ 1115 00000108 E5901000        LDR              r1, [r0]
+ 1116 0000010C E3510001        CMP              r1, #1
+ 1117 00000110 0AFFFFFE        BEQ              rt_hw_context_switch_interrupt_
+do
+ 1118 00000114         
+ 1119 00000114 E8BD5FFF        LDMFD            sp!, {r0-r12,lr}
+ 1120 00000118 E25EF004        SUBS             pc, lr, #4
+ 1121 0000011C                 ENDP
+
+
+
+ARM Macro Assembler    Page 29 
+
+
+ 1122 0000011C         
+ 1123 0000011C         ; /*
+ 1124 0000011C         ; * void rt_hw_context_switch_interrupt_do(rt_base_t fla
+                       g)
+ 1125 0000011C         ; */
+ 1126 0000011C         rt_hw_context_switch_interrupt_do
+                               PROC
+ 1127 0000011C                 EXPORT           rt_hw_context_switch_interrupt_
+do
+ 1128 0000011C E3A01000        MOV              r1,  #0     ; clear flag
+ 1129 00000120 E5801000        STR              r1,  [r0]
+ 1130 00000124         
+ 1131 00000124 E8BD5FFF        LDMFD            sp!, {r0-r12,lr} ; reload saved
+                                                             registers
+ 1132 00000128 E92D000F        STMFD            sp!, {r0-r3} ; save r0-r3
+ 1133 0000012C E1A0100D        MOV              r1,  sp
+ 1134 00000130 E28DD010        ADD              sp,  sp, #16 ; restore sp
+ 1135 00000134 E24E2004        SUB              r2,  lr, #4 ; save old task's p
+                                                            c to r2
+ 1136 00000138         
+ 1137 00000138 E14F3000        MRS              r3,  spsr   ; get cpsr of inter
+                                                            rupt thread
+ 1138 0000013C         
+ 1139 0000013C         ; switch to SVC mode and no interrupt
+ 1140 0000013C E321F0D3        MSR              cpsr_c, #I_Bit:OR:F_Bit:OR:Mode
+_SVC
+ 1141 00000140         
+ 1142 00000140 E92D0004        STMFD            sp!, {r2}   ; push old task's p
+                                                            c
+ 1143 00000144 E92D5FF0        STMFD            sp!, {r4-r12,lr} ; push old tas
+                                                            k's lr,r12-r4
+ 1144 00000148 E1A04001        MOV              r4,  r1     ; Special optimised
+                                                             code below
+ 1145 0000014C E1A05003        MOV              r5,  r3
+ 1146 00000150 E8B4000F        LDMFD            r4!, {r0-r3}
+ 1147 00000154 E92D000F        STMFD            sp!, {r0-r3} ; push old task's 
+                                                            r3-r0
+ 1148 00000158 E92D0020        STMFD            sp!, {r5}   ; push old task's c
+                                                            psr
+ 1149 0000015C E14F4000        MRS              r4,  spsr
+ 1150 00000160 E92D0010        STMFD            sp!, {r4}   ; push old task's s
+                                                            psr
+ 1151 00000164         
+ 1152 00000164 E59F4034        LDR              r4,  =rt_interrupt_from_thread
+ 1153 00000168 E5945000        LDR              r5,  [r4]
+ 1154 0000016C E585D000        STR              sp,  [r5]   ; store sp in preem
+                                                            pted tasks's TCB
+ 1155 00000170         
+ 1156 00000170 E59F602C        LDR              r6,  =rt_interrupt_to_thread
+ 1157 00000174 E5966000        LDR              r6,  [r6]
+ 1158 00000178 E596D000        LDR              sp,  [r6]   ; get new task's st
+                                                            ack pointer
+ 1159 0000017C         
+ 1160 0000017C E8BD0010        LDMFD            sp!, {r4}   ; pop new task's sp
+                                                            sr
+ 1161 00000180 E16FF004        MSR              spsr_cxsf, r4
+ 1162 00000184 E8BD0010        LDMFD            sp!, {r4}   ; pop new task's ps
+                                                            r
+ 1163 00000188 E12FF004        MSR              cpsr_cxsf, r4
+
+
+
+ARM Macro Assembler    Page 30 
+
+
+ 1164 0000018C         
+ 1165 0000018C E8BDDFFF        LDMFD            sp!, {r0-r12,lr,pc} ; pop new t
+                                                            ask's r0-r12,lr & p
+                                                            c
+ 1166 00000190                 ENDP
+ 1167 00000190         
+ 1168 00000190                 IF               :DEF:__MICROLIB
+ 1174 00000190         ; User Initial Stack & Heap
+ 1175 00000190 56000050 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000         AREA             |.text|, CODE, READONLY
+ 1176 00000000         
+ 1177 00000000                 IMPORT           __use_two_region_memory
+ 1178 00000000                 EXPORT           __user_initial_stackheap
+ 1179 00000000         __user_initial_stackheap
+ 1180 00000000         
+ 1181 00000000 E59F000C        LDR              R0, =  Heap_Mem
+ 1182 00000004 E59F100C        LDR              R1, =(Stack_Mem + USR_Stack_Siz
+e)
+ 1183 00000008 E59F2004        LDR              R2, = (Heap_Mem +      Heap_Siz
+e)
+ 1184 0000000C E59F3008        LDR              R3, = Stack_Mem
+ 1185 00000010 E12FFF1E        BX               LR
+ 1186 00000014                 ENDIF
+ 1187 00000014         
+ 1188 00000014         
+ 1189 00000014                 END
+              00000000 
+              00000100 
+              00000000 
+Command Line: --debug --xref --diag_suppress=9931 --cpu=ARM920T --apcs=interwor
+k --depend=.\build\start_rvds.d -o.\build\start_rvds.o -ID:\Keil_v5\ARM\RV31\IN
+C -ID:\Keil_v5\ARM\CMSIS\Include -ID:\Keil_v5\ARM\Inc\Samsung --predefine="__UV
+ISION_VERSION SETA 514" --list=.\start_rvds.lst ..\..\libcpu\arm\s3c24x0\start_
+rvds.S
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+STACK 00000000
+
+Symbol: STACK
+   Definitions
+      At line 71 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: STACK unused
+Stack_Mem 00000000
+
+Symbol: Stack_Mem
+   Definitions
+      At line 73 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1182 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1184 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+Stack_Top 00000300
+
+Symbol: Stack_Top
+   Definitions
+      At line 75 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1060 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Stack_Top used once
+__initial_sp 00000100
+
+Symbol: __initial_sp
+   Definitions
+      At line 74 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: __initial_sp unused
+4 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+HEAP 00000000
+
+Symbol: HEAP
+   Definitions
+      At line 84 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: HEAP unused
+Heap_Mem 00000000
+
+Symbol: Heap_Mem
+   Definitions
+      At line 86 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1181 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1183 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+__heap_base 00000000
+
+Symbol: __heap_base
+   Definitions
+      At line 85 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: __heap_base unused
+__heap_limit 00000000
+
+Symbol: __heap_limit
+   Definitions
+      At line 87 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: __heap_limit unused
+4 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+DAbt_Addr 00000030
+
+Symbol: DAbt_Addr
+   Definitions
+      At line 861 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 852 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: DAbt_Addr used once
+DAbt_Handler 00000050
+
+Symbol: DAbt_Handler
+   Definitions
+      At line 880 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 861 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: DAbt_Handler used once
+Entry_Point 00000000
+
+Symbol: Entry_Point
+   Definitions
+      At line 847 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 846 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Entry_Point used once
+FIQ_Addr 0000003C
+
+Symbol: FIQ_Addr
+   Definitions
+      At line 864 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 855 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: FIQ_Addr used once
+FIQ_Handler 0000004C
+
+Symbol: FIQ_Handler
+   Definitions
+      At line 870 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 864 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 870 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+IRQ_Addr 00000038
+
+Symbol: IRQ_Addr
+   Definitions
+      At line 863 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 854 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: IRQ_Addr used once
+IRQ_Handler 000000F4
+
+Symbol: IRQ_Handler
+   Definitions
+      At line 1105 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 863 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1106 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+PAbt_Addr 0000002C
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: PAbt_Addr
+   Definitions
+      At line 860 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 851 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: PAbt_Addr used once
+PAbt_Handler 00000048
+
+Symbol: PAbt_Handler
+   Definitions
+      At line 868 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 860 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 868 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+RESET 00000000
+
+Symbol: RESET
+   Definitions
+      At line 838 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: RESET unused
+Reset_Addr 00000020
+
+Symbol: Reset_Addr
+   Definitions
+      At line 857 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 848 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Reset_Addr used once
+Reset_Handler 00000078
+
+Symbol: Reset_Handler
+   Definitions
+      At line 900 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 857 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 899 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+SWI_Addr 00000028
+
+Symbol: SWI_Addr
+   Definitions
+      At line 859 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 850 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: SWI_Addr used once
+SWI_Handler 00000044
+
+Symbol: SWI_Handler
+   Definitions
+      At line 867 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 859 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 867 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+Undef_Addr 00000024
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: Undef_Addr
+   Definitions
+      At line 858 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 849 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Undef_Addr used once
+Undef_Handler 00000040
+
+Symbol: Undef_Handler
+   Definitions
+      At line 866 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 858 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 866 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+Vectors 00000000
+
+Symbol: Vectors
+   Definitions
+      At line 848 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: Vectors unused
+rt_hw_context_switch_interrupt_do 0000011C
+
+Symbol: rt_hw_context_switch_interrupt_do
+   Definitions
+      At line 1126 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1117 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1127 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+18 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.text 00000000
+
+Symbol: .text
+   Definitions
+      At line 1175 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: .text unused
+__user_initial_stackheap 00000000
+
+Symbol: __user_initial_stackheap
+   Definitions
+      At line 1179 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1178 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: __user_initial_stackheap used once
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+ABT_Stack_Size 00000000
+
+Symbol: ABT_Stack_Size
+   Definitions
+      At line 63 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 69 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1070 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+BANKCON0_OFS 00000004
+
+Symbol: BANKCON0_OFS
+   Definitions
+      At line 227 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON0_OFS unused
+BANKCON0_Val 00000700
+
+Symbol: BANKCON0_Val
+   Definitions
+      At line 471 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON0_Val unused
+BANKCON1_OFS 00000008
+
+Symbol: BANKCON1_OFS
+   Definitions
+      At line 228 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON1_OFS unused
+BANKCON1_Val 00000700
+
+Symbol: BANKCON1_Val
+   Definitions
+      At line 472 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON1_Val unused
+BANKCON2_OFS 0000000C
+
+Symbol: BANKCON2_OFS
+   Definitions
+      At line 229 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON2_OFS unused
+BANKCON2_Val 00000700
+
+Symbol: BANKCON2_Val
+   Definitions
+      At line 473 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON2_Val unused
+BANKCON3_OFS 00000010
+
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Absolute symbols
+
+Symbol: BANKCON3_OFS
+   Definitions
+      At line 230 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON3_OFS unused
+BANKCON3_Val 00000700
+
+Symbol: BANKCON3_Val
+   Definitions
+      At line 474 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON3_Val unused
+BANKCON4_OFS 00000014
+
+Symbol: BANKCON4_OFS
+   Definitions
+      At line 231 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON4_OFS unused
+BANKCON4_Val 00000700
+
+Symbol: BANKCON4_Val
+   Definitions
+      At line 475 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON4_Val unused
+BANKCON5_OFS 00000018
+
+Symbol: BANKCON5_OFS
+   Definitions
+      At line 232 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON5_OFS unused
+BANKCON5_Val 00000700
+
+Symbol: BANKCON5_Val
+   Definitions
+      At line 476 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON5_Val unused
+BANKCON6_OFS 0000001C
+
+Symbol: BANKCON6_OFS
+   Definitions
+      At line 233 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON6_OFS unused
+BANKCON6_Val 00018005
+
+Symbol: BANKCON6_Val
+   Definitions
+      At line 477 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Absolute symbols
+
+   Uses
+      None
+Comment: BANKCON6_Val unused
+BANKCON7_OFS 00000020
+
+Symbol: BANKCON7_OFS
+   Definitions
+      At line 234 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON7_OFS unused
+BANKCON7_Val 00018005
+
+Symbol: BANKCON7_Val
+   Definitions
+      At line 478 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKCON7_Val unused
+BANKSIZE_OFS 00000028
+
+Symbol: BANKSIZE_OFS
+   Definitions
+      At line 236 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKSIZE_OFS unused
+BANKSIZE_Val 00000032
+
+Symbol: BANKSIZE_Val
+   Definitions
+      At line 480 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BANKSIZE_Val unused
+BWSCON_OFS 00000000
+
+Symbol: BWSCON_OFS
+   Definitions
+      At line 226 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BWSCON_OFS unused
+BWSCON_Val 22000000
+
+Symbol: BWSCON_Val
+   Definitions
+      At line 470 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: BWSCON_Val unused
+CAMDIVN_OFS 00000018
+
+Symbol: CAMDIVN_OFS
+   Definitions
+      At line 130 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CAMDIVN_OFS unused
+
+
+
+ARM Macro Assembler    Page 4 Alphabetic symbol ordering
+Absolute symbols
+
+CAMDIVN_Val 00000000
+
+Symbol: CAMDIVN_Val
+   Definitions
+      At line 220 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CAMDIVN_Val unused
+CLKCON_OFS 0000000C
+
+Symbol: CLKCON_OFS
+   Definitions
+      At line 127 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CLKCON_OFS unused
+CLKCON_Val 001FFFF0
+
+Symbol: CLKCON_Val
+   Definitions
+      At line 217 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CLKCON_Val unused
+CLKDIVN_OFS 00000014
+
+Symbol: CLKDIVN_OFS
+   Definitions
+      At line 129 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CLKDIVN_OFS unused
+CLKDIVN_Val 0000000F
+
+Symbol: CLKDIVN_Val
+   Definitions
+      At line 219 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CLKDIVN_Val unused
+CLKSLOW_OFS 00000010
+
+Symbol: CLKSLOW_OFS
+   Definitions
+      At line 128 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CLKSLOW_OFS unused
+CLKSLOW_Val 00000004
+
+Symbol: CLKSLOW_Val
+   Definitions
+      At line 218 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CLKSLOW_Val unused
+CLOCK_BASE 4C000000
+
+Symbol: CLOCK_BASE
+
+
+
+ARM Macro Assembler    Page 5 Alphabetic symbol ordering
+Absolute symbols
+
+   Definitions
+      At line 123 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: CLOCK_BASE unused
+CLOCK_SETUP 00000000
+
+Symbol: CLOCK_SETUP
+   Definitions
+      At line 213 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 917 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 938 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+FIQ_Stack_Size 00000000
+
+Symbol: FIQ_Stack_Size
+   Definitions
+      At line 64 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 69 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1075 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+F_Bit 00000040
+
+Symbol: F_Bit
+   Definitions
+      At line 47 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1063 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1068 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1073 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1078 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1083 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1140 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+GPACON_Val 000003FF
+
+Symbol: GPACON_Val
+   Definitions
+      At line 531 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPACON_Val unused
+GPA_BASE 56000000
+
+Symbol: GPA_BASE
+   Definitions
+      At line 487 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPA_BASE unused
+GPA_SETUP 00000000
+
+Symbol: GPA_SETUP
+   Definitions
+      At line 530 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 973 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+
+
+ARM Macro Assembler    Page 6 Alphabetic symbol ordering
+Absolute symbols
+
+Comment: GPA_SETUP used once
+GPBCON_Val 00000000
+
+Symbol: GPBCON_Val
+   Definitions
+      At line 562 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPBCON_Val unused
+GPBUP_Val 00000000
+
+Symbol: GPBUP_Val
+   Definitions
+      At line 563 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPBUP_Val unused
+GPB_BASE 56000010
+
+Symbol: GPB_BASE
+   Definitions
+      At line 488 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPB_BASE unused
+GPB_SETUP 00000000
+
+Symbol: GPB_SETUP
+   Definitions
+      At line 561 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 979 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPB_SETUP used once
+GPCCON_Val 00000000
+
+Symbol: GPCCON_Val
+   Definitions
+      At line 604 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPCCON_Val unused
+GPCON_OFS 00000000
+
+Symbol: GPCON_OFS
+   Definitions
+      At line 496 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1014 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPCON_OFS used once
+GPCUP_Val 00000000
+
+Symbol: GPCUP_Val
+   Definitions
+      At line 605 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPCUP_Val unused
+GPC_BASE 56000020
+
+
+
+
+ARM Macro Assembler    Page 7 Alphabetic symbol ordering
+Absolute symbols
+
+Symbol: GPC_BASE
+   Definitions
+      At line 489 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPC_BASE unused
+GPC_SETUP 00000000
+
+Symbol: GPC_SETUP
+   Definitions
+      At line 603 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 987 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPC_SETUP used once
+GPDAT_OFS 00000004
+
+Symbol: GPDAT_OFS
+   Definitions
+      At line 497 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPDAT_OFS unused
+GPDCON_Val 00000000
+
+Symbol: GPDCON_Val
+   Definitions
+      At line 646 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPDCON_Val unused
+GPDUP_Val 00000000
+
+Symbol: GPDUP_Val
+   Definitions
+      At line 647 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPDUP_Val unused
+GPD_BASE 56000030
+
+Symbol: GPD_BASE
+   Definitions
+      At line 490 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPD_BASE unused
+GPD_SETUP 00000000
+
+Symbol: GPD_SETUP
+   Definitions
+      At line 645 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 995 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPD_SETUP used once
+GPECON_Val 00000000
+
+Symbol: GPECON_Val
+   Definitions
+      At line 688 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+
+
+ARM Macro Assembler    Page 8 Alphabetic symbol ordering
+Absolute symbols
+
+   Uses
+      None
+Comment: GPECON_Val unused
+GPEUP_Val 00000000
+
+Symbol: GPEUP_Val
+   Definitions
+      At line 689 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPEUP_Val unused
+GPE_BASE 56000040
+
+Symbol: GPE_BASE
+   Definitions
+      At line 491 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPE_BASE unused
+GPE_SETUP 00000000
+
+Symbol: GPE_SETUP
+   Definitions
+      At line 687 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1003 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPE_SETUP used once
+GPFCON_Val 000000AA
+
+Symbol: GPFCON_Val
+   Definitions
+      At line 714 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1013 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPFCON_Val used once
+GPFUP_Val 0000000F
+
+Symbol: GPFUP_Val
+   Definitions
+      At line 715 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1015 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPFUP_Val used once
+GPF_BASE 56000050
+
+Symbol: GPF_BASE
+   Definitions
+      At line 492 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1012 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPF_BASE used once
+GPF_SETUP 00000001
+
+Symbol: GPF_SETUP
+   Definitions
+      At line 713 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1011 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPF_SETUP used once
+
+
+
+ARM Macro Assembler    Page 9 Alphabetic symbol ordering
+Absolute symbols
+
+GPGCON_Val 00000000
+
+Symbol: GPGCON_Val
+   Definitions
+      At line 756 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPGCON_Val unused
+GPGUP_Val 00000000
+
+Symbol: GPGUP_Val
+   Definitions
+      At line 757 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPGUP_Val unused
+GPG_BASE 56000060
+
+Symbol: GPG_BASE
+   Definitions
+      At line 493 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPG_BASE unused
+GPG_SETUP 00000000
+
+Symbol: GPG_SETUP
+   Definitions
+      At line 755 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1019 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPG_SETUP used once
+GPHCON_Val 00000000
+
+Symbol: GPHCON_Val
+   Definitions
+      At line 788 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPHCON_Val unused
+GPHUP_Val 00000000
+
+Symbol: GPHUP_Val
+   Definitions
+      At line 789 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPHUP_Val unused
+GPH_BASE 56000070
+
+Symbol: GPH_BASE
+   Definitions
+      At line 494 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPH_BASE unused
+GPH_SETUP 00000000
+
+Symbol: GPH_SETUP
+
+
+
+ARM Macro Assembler    Page 10 Alphabetic symbol ordering
+Absolute symbols
+
+   Definitions
+      At line 787 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1027 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPH_SETUP used once
+GPJCON_Val 00000000
+
+Symbol: GPJCON_Val
+   Definitions
+      At line 824 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPJCON_Val unused
+GPJUP_Val 00000000
+
+Symbol: GPJUP_Val
+   Definitions
+      At line 825 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPJUP_Val unused
+GPJ_BASE 560000D0
+
+Symbol: GPJ_BASE
+   Definitions
+      At line 495 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: GPJ_BASE unused
+GPJ_SETUP 00000000
+
+Symbol: GPJ_SETUP
+   Definitions
+      At line 823 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1035 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPJ_SETUP used once
+GPUP_OFS 00000008
+
+Symbol: GPUP_OFS
+   Definitions
+      At line 498 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1016 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GPUP_OFS used once
+GP_SETUP 00000001
+
+Symbol: GP_SETUP
+   Definitions
+      At line 501 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 971 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: GP_SETUP used once
+Heap_Size 00000000
+
+Symbol: Heap_Size
+   Definitions
+      At line 82 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+
+
+
+ARM Macro Assembler    Page 11 Alphabetic symbol ordering
+Absolute symbols
+
+      At line 86 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1183 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+IRAM_BASE 40000000
+
+Symbol: IRAM_BASE
+   Definitions
+      At line 93 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: IRAM_BASE unused
+IRQ_Stack_Size 00000100
+
+Symbol: IRQ_Stack_Size
+   Definitions
+      At line 65 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 69 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1080 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+ISR_Stack_Size 00000200
+
+Symbol: ISR_Stack_Size
+   Definitions
+      At line 69 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 74 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: ISR_Stack_Size used once
+I_Bit 00000080
+
+Symbol: I_Bit
+   Definitions
+      At line 46 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1063 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1068 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1073 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1078 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1083 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1140 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+LOCKTIME_OFS 00000000
+
+Symbol: LOCKTIME_OFS
+   Definitions
+      At line 124 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: LOCKTIME_OFS unused
+LOCKTIME_Val 0FFF0FFF
+
+Symbol: LOCKTIME_Val
+   Definitions
+      At line 214 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: LOCKTIME_Val unused
+MC_BASE 48000000
+
+
+
+
+ARM Macro Assembler    Page 12 Alphabetic symbol ordering
+Absolute symbols
+
+Symbol: MC_BASE
+   Definitions
+      At line 225 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: MC_BASE unused
+MC_SETUP 00000000
+
+Symbol: MC_SETUP
+   Definitions
+      At line 469 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: MC_SETUP unused
+MPLLCON_OFS 00000004
+
+Symbol: MPLLCON_OFS
+   Definitions
+      At line 125 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: MPLLCON_OFS unused
+MPLLCON_Val 00043011
+
+Symbol: MPLLCON_Val
+   Definitions
+      At line 215 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: MPLLCON_Val unused
+MRSRB6_OFS 0000002C
+
+Symbol: MRSRB6_OFS
+   Definitions
+      At line 237 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: MRSRB6_OFS unused
+MRSRB6_Val 00000020
+
+Symbol: MRSRB6_Val
+   Definitions
+      At line 481 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: MRSRB6_Val unused
+MRSRB7_OFS 00000030
+
+Symbol: MRSRB7_OFS
+   Definitions
+      At line 238 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: MRSRB7_OFS unused
+MRSRB7_Val 00000020
+
+Symbol: MRSRB7_Val
+   Definitions
+      At line 482 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+
+
+ARM Macro Assembler    Page 13 Alphabetic symbol ordering
+Absolute symbols
+
+   Uses
+      None
+Comment: MRSRB7_Val unused
+Mode_ABT 00000017
+
+Symbol: Mode_ABT
+   Definitions
+      At line 42 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1068 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Mode_ABT used once
+Mode_FIQ 00000011
+
+Symbol: Mode_FIQ
+   Definitions
+      At line 39 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1073 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Mode_FIQ used once
+Mode_IRQ 00000012
+
+Symbol: Mode_IRQ
+   Definitions
+      At line 40 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1078 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Mode_IRQ used once
+Mode_SVC 00000013
+
+Symbol: Mode_SVC
+   Definitions
+      At line 41 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1083 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1140 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+Mode_SYS 0000001F
+
+Symbol: Mode_SYS
+   Definitions
+      At line 44 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: Mode_SYS unused
+Mode_UND 0000001B
+
+Symbol: Mode_UND
+   Definitions
+      At line 43 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1063 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: Mode_UND used once
+Mode_USR 00000010
+
+Symbol: Mode_USR
+   Definitions
+      At line 38 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+
+
+
+ARM Macro Assembler    Page 14 Alphabetic symbol ordering
+Absolute symbols
+
+Comment: Mode_USR unused
+REFRESH_OFS 00000024
+
+Symbol: REFRESH_OFS
+   Definitions
+      At line 235 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: REFRESH_OFS unused
+REFRESH_Val 008404F3
+
+Symbol: REFRESH_Val
+   Definitions
+      At line 479 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: REFRESH_Val unused
+SVC_Stack_Size 00000100
+
+Symbol: SVC_Stack_Size
+   Definitions
+      At line 62 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 69 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1085 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+UND_Stack_Size 00000000
+
+Symbol: UND_Stack_Size
+   Definitions
+      At line 61 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 69 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1065 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+UPLLCON_OFS 00000008
+
+Symbol: UPLLCON_OFS
+   Definitions
+      At line 126 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: UPLLCON_OFS unused
+UPLLCON_Val 00038021
+
+Symbol: UPLLCON_Val
+   Definitions
+      At line 216 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: UPLLCON_Val unused
+USR_Stack_Size 00000100
+
+Symbol: USR_Stack_Size
+   Definitions
+      At line 66 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 73 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+      At line 1090 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+
+
+ARM Macro Assembler    Page 15 Alphabetic symbol ordering
+Absolute symbols
+
+      At line 1182 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+
+WTCNT_OFS 00000008
+
+Symbol: WTCNT_OFS
+   Definitions
+      At line 101 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 909 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: WTCNT_OFS used once
+WTCON_OFS 00000000
+
+Symbol: WTCON_OFS
+   Definitions
+      At line 99 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 911 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: WTCON_OFS used once
+WTCON_Val 00000000
+
+Symbol: WTCON_Val
+   Definitions
+      At line 117 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 907 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: WTCON_Val used once
+WTDAT_OFS 00000004
+
+Symbol: WTDAT_OFS
+   Definitions
+      At line 100 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 910 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: WTDAT_OFS used once
+WTDAT_Val 00008000
+
+Symbol: WTDAT_Val
+   Definitions
+      At line 118 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 908 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: WTDAT_Val used once
+WT_BASE 53000000
+
+Symbol: WT_BASE
+   Definitions
+      At line 98 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 906 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: WT_BASE used once
+WT_SETUP 00000001
+
+Symbol: WT_SETUP
+   Definitions
+      At line 116 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 905 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: WT_SETUP used once
+108 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+__main 00000000
+
+Symbol: __main
+   Definitions
+      At line 1094 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1095 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: __main used once
+__use_two_region_memory 00000000
+
+Symbol: __use_two_region_memory
+   Definitions
+      At line 1177 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      None
+Comment: __use_two_region_memory unused
+rt_hw_trap_dabt 00000000
+
+Symbol: rt_hw_trap_dabt
+   Definitions
+      At line 881 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 893 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: rt_hw_trap_dabt used once
+rt_hw_trap_irq 00000000
+
+Symbol: rt_hw_trap_irq
+   Definitions
+      At line 1103 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1109 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: rt_hw_trap_irq used once
+rt_interrupt_enter 00000000
+
+Symbol: rt_interrupt_enter
+   Definitions
+      At line 1098 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1108 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: rt_interrupt_enter used once
+rt_interrupt_from_thread 00000000
+
+Symbol: rt_interrupt_from_thread
+   Definitions
+      At line 1101 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1152 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: rt_interrupt_from_thread used once
+rt_interrupt_leave 00000000
+
+Symbol: rt_interrupt_leave
+   Definitions
+      At line 1099 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1110 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: rt_interrupt_leave used once
+rt_interrupt_to_thread 00000000
+
+Symbol: rt_interrupt_to_thread
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+External symbols
+
+   Definitions
+      At line 1102 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1156 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: rt_interrupt_to_thread used once
+rt_thread_switch_interrupt_flag 00000000
+
+Symbol: rt_thread_switch_interrupt_flag
+   Definitions
+      At line 1100 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+   Uses
+      At line 1114 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
+Comment: rt_thread_switch_interrupt_flag used once
+9 symbols
+490 symbols in table

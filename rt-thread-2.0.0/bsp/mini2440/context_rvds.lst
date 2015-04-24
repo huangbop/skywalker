@@ -159,11 +159,10 @@ _flag
               00000000 
               00000000 
               00000000 
-Command Line: --debug --xref --diag_suppress=9931 --cpu=ARM920T --apcs=interwor
-k --depend=.\build\context_rvds.d -o.\build\context_rvds.o -ID:\Keil_v5\ARM\RV3
-1\INC -ID:\Keil_v5\ARM\CMSIS\Include -ID:\Keil_v5\ARM\Inc\Samsung --predefine="
-__UVISION_VERSION SETA 514" --list=.\context_rvds.lst ..\..\libcpu\arm\s3c24x0\
-context_rvds.S
+Command Line: --debug --xref --cpu=ARM920T --apcs=interwork --depend=.\build\co
+ntext_rvds.d -o.\build\context_rvds.o -ID:\Keil\ARM\RV31\INC -ID:\Keil\ARM\CMSI
+S\Include -ID:\Keil\ARM\Inc\Samsung --list=.\context_rvds.lst ..\..\libcpu\arm\
+s3c24x0\context_rvds.S
 
 
 
@@ -273,4 +272,4 @@ Symbol: rt_thread_switch_interrupt_flag
       At line 93 in file ..\..\libcpu\arm\s3c24x0\context_rvds.S
 Comment: rt_thread_switch_interrupt_flag used once
 3 symbols
-344 symbols in table
+343 symbols in table

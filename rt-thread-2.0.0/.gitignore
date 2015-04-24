@@ -21,4 +21,6 @@ build
 *.d
 
 *.uvgui.*
+*.lst
+*.uvopt
 

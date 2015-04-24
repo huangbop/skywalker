@@ -1922,11 +1922,10 @@ e)
               00000000 
               00000100 
               00000000 
-Command Line: --debug --xref --diag_suppress=9931 --cpu=ARM920T --apcs=interwor
-k --depend=.\build\start_rvds.d -o.\build\start_rvds.o -ID:\Keil_v5\ARM\RV31\IN
-C -ID:\Keil_v5\ARM\CMSIS\Include -ID:\Keil_v5\ARM\Inc\Samsung --predefine="__UV
-ISION_VERSION SETA 514" --list=.\start_rvds.lst ..\..\libcpu\arm\s3c24x0\start_
-rvds.S
+Command Line: --debug --xref --cpu=ARM920T --apcs=interwork --depend=.\build\st
+art_rvds.d -o.\build\start_rvds.o -ID:\Keil\ARM\RV31\INC -ID:\Keil\ARM\CMSIS\In
+clude -ID:\Keil\ARM\Inc\Samsung --list=.\start_rvds.lst ..\..\libcpu\arm\s3c24x
+0\start_rvds.S
 
 
 
@@ -3260,4 +3259,4 @@ Symbol: rt_thread_switch_interrupt_flag
       At line 1114 in file ..\..\libcpu\arm\s3c24x0\start_rvds.S
 Comment: rt_thread_switch_interrupt_flag used once
 9 symbols
-490 symbols in table
+489 symbols in table

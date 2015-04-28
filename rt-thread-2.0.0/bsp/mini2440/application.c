@@ -74,7 +74,7 @@ void rt_ftk_thread_entry(void *parameter)
 void rt_init_thread_entry(void *parameter)
 {
 	while (1) {
-		rt_kprintf("init\n");
+		rt_kprintf("---\n");
 	}
 }
 
@@ -82,7 +82,7 @@ void rt_led_thread_entry(void *parameter)
 {
 	while (1)
 	{
-		rt_kprintf("led\n");
+		rt_kprintf("***\n");
 	}
 }
 
